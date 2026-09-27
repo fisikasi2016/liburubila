@@ -5,29 +5,17 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   plugins: [
     react(),
-
     VitePWA({
       registerType: 'autoUpdate',
-
-      includeAssets: [
-        'favicon.ico',
-        'apple-touch-icon.png',
-      ],
-
       manifest: {
         name: 'Liburubila',
         short_name: 'Liburubila',
-
         description:
           'Aukeratu zure liburua eta lagundu besteei aukeratzen',
-
         theme_color: '#263c2d',
         background_color: '#f6f4ed',
-
         display: 'standalone',
-
         start_url: '/',
-
         icons: [
           {
             src: '/pwa-192x192.png',
@@ -45,12 +33,6 @@ export default defineConfig({
             type: 'image/png',
             purpose: 'maskable',
           },
-        ],
-      },
-
-      workbox: {
-        globPatterns: [
-          '**/*.{js,css,html,ico,png,svg}',
         ],
       },
     }),
