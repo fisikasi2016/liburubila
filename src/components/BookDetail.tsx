@@ -80,21 +80,33 @@ export default function BookDetail({
   const [error, setError] =
     useState('')
 
-  // BORRADO GENERAL / COMENTARIOS
+  // =========================
+  // BORRADO LIBRO / COMENTARIO
+  // =========================
 
-  const [deleteTarget, setDeleteTarget] =
-    useState<DeleteTarget>(null)
+  const [
+    deleteTarget,
+    setDeleteTarget,
+  ] = useState<DeleteTarget>(null)
 
-  const [teacherPassword, setTeacherPassword] =
-    useState('')
+  const [
+    teacherPassword,
+    setTeacherPassword,
+  ] = useState('')
 
-  const [passwordError, setPasswordError] =
-    useState('')
+  const [
+    passwordError,
+    setPasswordError,
+  ] = useState('')
 
-  const [deleting, setDeleting] =
-    useState(false)
+  const [
+    deleting,
+    setDeleting,
+  ] = useState(false)
 
-  // CONSULTA DE VALORACIONES
+  // =========================
+  // VALORACIONES INDIVIDUALES
+  // =========================
 
   const [
     showRatingsPassword,
@@ -130,7 +142,9 @@ export default function BookDetail({
       setLoading(true)
       setError('')
 
+      // =========================
       // LIBRO
+      // =========================
 
       const {
         data: bookData,
@@ -155,7 +169,9 @@ export default function BookDetail({
 
       setBook(bookData)
 
+      // =========================
       // CRITERIOS
+      // =========================
 
       const {
         data: criteriaData,
@@ -172,14 +188,19 @@ export default function BookDetail({
         })
 
       if (criteriaError) {
-        console.error(criteriaError)
+        console.error(
+          'Error criterios:',
+          criteriaError
+        )
       }
 
       setCriteria(
         criteriaData ?? []
       )
 
+      // =========================
       // APORTACIONES
+      // =========================
 
       const {
         data: ratingsData,
@@ -207,11 +228,14 @@ export default function BookDetail({
 
       setRatings(loadedRatings)
 
+      // =========================
       // PUNTUACIONES
+      // =========================
 
       const ratingIds =
         loadedRatings.map(
-          (rating) => rating.id
+          (rating) =>
+            rating.id
         )
 
       if (ratingIds.length > 0) {
@@ -248,7 +272,9 @@ export default function BookDetail({
         setScores([])
       }
 
+      // =========================
       // ESTILOS
+      // =========================
 
       const {
         data: relationsData,
@@ -260,8 +286,10 @@ export default function BookDetail({
 
       if (relationsError) {
         console.error(
+          'Error relaciones estilos:',
           relationsError
         )
+
         setStyles([])
       } else {
         const styleIds =
@@ -279,14 +307,28 @@ export default function BookDetail({
             error: stylesError,
           } = await supabase
             .from('styles')
-            .select('id, name')
-            .in('id', styleIds)
-            .order('name')
+            .select(`
+              id,
+              name
+            `)
+            .in(
+              'id',
+              styleIds
+            )
+            .order(
+              'name',
+              {
+                ascending: true,
+              }
+            )
 
           if (stylesError) {
             console.error(
+              'Error estilos:',
               stylesError
             )
+
+            setStyles([])
           } else {
             setStyles(
               stylesData ?? []
@@ -311,7 +353,7 @@ export default function BookDetail({
   }
 
   // =========================
-  // CÁLCULOS
+  // DATOS DERIVADOS
   // =========================
 
   const comments =
@@ -321,14 +363,17 @@ export default function BookDetail({
           (rating) =>
             typeof rating.comment ===
               'string' &&
-            rating.comment.trim()
+            rating.comment
+              .trim()
               .length > 0
         )
-        .map((rating) => ({
-          ...rating,
-          comment:
-            rating.comment as string,
-        }))
+        .map(
+          (rating) => ({
+            ...rating,
+            comment:
+              rating.comment as string,
+          })
+        )
     }, [ratings])
 
   const ratedRatings =
@@ -347,30 +392,36 @@ export default function BookDetail({
     useMemo(() => {
       const individualAverages =
         ratedRatings
-          .map((rating) => {
-            const ratingScores =
-              scores.filter(
-                (score) =>
-                  score.rating_id ===
-                  rating.id
-              )
+          .map(
+            (rating) => {
+              const ratingScores =
+                scores.filter(
+                  (score) =>
+                    score.rating_id ===
+                    rating.id
+                )
 
-            if (
-              ratingScores.length === 0
-            ) {
-              return null
-            }
-
-            return (
-              ratingScores.reduce(
-                (sum, score) =>
-                  sum +
-                  score.score,
+              if (
+                ratingScores.length ===
                 0
-              ) /
-              ratingScores.length
-            )
-          })
+              ) {
+                return null
+              }
+
+              return (
+                ratingScores.reduce(
+                  (
+                    sum,
+                    score
+                  ) =>
+                    sum +
+                    score.score,
+                  0
+                ) /
+                ratingScores.length
+              )
+            }
+          )
           .filter(
             (
               value
@@ -387,13 +438,19 @@ export default function BookDetail({
 
       return (
         individualAverages.reduce(
-          (sum, value) =>
+          (
+            sum,
+            value
+          ) =>
             sum + value,
           0
         ) /
         individualAverages.length
       )
-    }, [ratedRatings, scores])
+    }, [
+      ratedRatings,
+      scores,
+    ])
 
   const criterionAverages =
     useMemo(() => {
@@ -407,7 +464,8 @@ export default function BookDetail({
             )
 
           if (
-            criterionScores.length === 0
+            criterionScores.length ===
+            0
           ) {
             return {
               criterion,
@@ -420,7 +478,10 @@ export default function BookDetail({
 
             average:
               criterionScores.reduce(
-                (sum, score) =>
+                (
+                  sum,
+                  score
+                ) =>
                   sum +
                   score.score,
                 0
@@ -429,10 +490,13 @@ export default function BookDetail({
           }
         }
       )
-    }, [criteria, scores])
+    }, [
+      criteria,
+      scores,
+    ])
 
   // =========================
-  // BORRAR COMENTARIO / LIBRO
+  // BORRAR LIBRO / COMENTARIO
   // =========================
 
   function requestDeleteBook() {
@@ -478,10 +542,13 @@ export default function BookDetail({
       setPasswordError(
         'Pasahitza ez da zuzena.'
       )
+
       return
     }
 
-    if (!deleteTarget) return
+    if (!deleteTarget) {
+      return
+    }
 
     if (
       deleteTarget.type ===
@@ -524,7 +591,10 @@ export default function BookDetail({
         .update({
           comment: null,
         })
-        .eq('id', ratingId)
+        .eq(
+          'id',
+          ratingId
+        )
 
       if (updateError) {
         throw updateError
@@ -545,7 +615,9 @@ export default function BookDetail({
   }
 
   async function deleteBook() {
-    if (!book) return
+    if (!book) {
+      return
+    }
 
     try {
       setDeleting(true)
@@ -557,9 +629,26 @@ export default function BookDetail({
           )
 
         if (fileName) {
-          await supabase.storage
-            .from('book-covers')
-            .remove([fileName])
+          const {
+            error:
+              storageError,
+          } =
+            await supabase.storage
+              .from(
+                'book-covers'
+              )
+              .remove([
+                fileName,
+              ])
+
+          if (
+            storageError
+          ) {
+            console.error(
+              'Error borrando portada:',
+              storageError
+            )
+          }
         }
       }
 
@@ -568,7 +657,10 @@ export default function BookDetail({
       } = await supabase
         .from('books')
         .delete()
-        .eq('id', bookId)
+        .eq(
+          'id',
+          bookId
+        )
 
       if (deleteError) {
         throw deleteError
@@ -589,7 +681,7 @@ export default function BookDetail({
   }
 
   // =========================
-  // VER VALORACIONES
+  // ACCESO A RATINGS
   // =========================
 
   function requestRatingsAccess() {
@@ -620,6 +712,10 @@ export default function BookDetail({
     setShowIndividualRatings(true)
   }
 
+  // =========================
+  // BORRAR RATING INDIVIDUAL
+  // =========================
+
   async function deleteIndividualRating(
     ratingId: number
   ) {
@@ -628,14 +724,15 @@ export default function BookDetail({
         'Ziur zaude balorazio hau ezabatu nahi duzula? Iruzkina mantenduko da, baldin badago.'
       )
 
-    if (!confirmed) return
+    if (!confirmed) {
+      return
+    }
 
     try {
       setDeletingRatingId(
         ratingId
       )
 
-      // Solo eliminamos las notas.
       const {
         error: scoresError,
       } = await supabase
@@ -650,17 +747,17 @@ export default function BookDetail({
         throw scoresError
       }
 
-      // Si no tiene comentario,
-      // la fila ya no sirve para nada.
       const rating =
         ratings.find(
           (item) =>
-            item.id === ratingId
+            item.id ===
+            ratingId
         )
 
       if (
         !rating?.comment ||
-        rating.comment.trim() ===
+        rating.comment
+          .trim() ===
           ''
       ) {
         const {
@@ -686,12 +783,14 @@ export default function BookDetail({
         'Ezin izan da balorazioa ezabatu.'
       )
     } finally {
-      setDeletingRatingId(null)
+      setDeletingRatingId(
+        null
+      )
     }
   }
 
   // =========================
-  // RENDER
+  // CARGANDO / ERROR
   // =========================
 
   if (loading) {
@@ -704,7 +803,10 @@ export default function BookDetail({
     )
   }
 
-  if (error || !book) {
+  if (
+    error ||
+    !book
+  ) {
     return (
       <section className="page">
         <button
@@ -724,6 +826,10 @@ export default function BookDetail({
     )
   }
 
+  // =========================
+  // RENDER PRINCIPAL
+  // =========================
+
   return (
     <section className="page">
       <div className="book-detail-topbar">
@@ -740,6 +846,7 @@ export default function BookDetail({
             requestDeleteBook
           }
           title="Liburua ezabatu"
+          aria-label="Liburua ezabatu"
         >
           🗑️
         </button>
@@ -749,8 +856,12 @@ export default function BookDetail({
         <div className="book-detail-cover">
           {book.cover_url ? (
             <img
-              src={book.cover_url}
-              alt={book.title}
+              src={
+                book.cover_url
+              }
+              alt={
+                book.title
+              }
             />
           ) : (
             <div className="book-detail-no-cover">
@@ -772,55 +883,58 @@ export default function BookDetail({
             {book.author}
           </p>
 
-          {/* NOTA GENERAL */}
+          {/* =========================
+              NOTA GENERAL
+              ========================= */}
 
           <div className="book-main-rating">
-            <div>
-              <span className="rating-label">
-                BATEZ BESTEKO NOTA
+            <span className="rating-label">
+              BATEZ BESTEKO NOTA
+            </span>
+
+            <div className="main-rating-row">
+              <StarRating
+                value={
+                  overallAverage
+                }
+              />
+
+              <strong>
+                {overallAverage ===
+                null
+                  ? '–'
+                  : overallAverage
+                      .toFixed(1)
+                      .replace(
+                        '.',
+                        ','
+                      )}
+              </strong>
+
+              <span>
+                (
+                {
+                  ratedRatings.length
+                }
+                )
               </span>
 
-              <div className="main-rating-row">
-                <StarRating
-                  value={
-                    overallAverage
-                  }
-                />
-
-                <strong>
-                  {overallAverage ===
-                  null
-                    ? '–'
-                    : overallAverage
-                        .toFixed(1)
-                        .replace(
-                          '.',
-                          ','
-                        )}
-                </strong>
-
-                <span>
-                  (
-                  {
-                    ratedRatings.length
-                  }
-                  )
-                </span>
-
-                <button
-                  className="rating-inspect-button"
-                  onClick={
-                    requestRatingsAccess
-                  }
-                  title="Balorazioak ikusi"
-                >
-                  🔍
-                </button>
-              </div>
+              <button
+                className="rating-inspect-button"
+                onClick={
+                  requestRatingsAccess
+                }
+                title="Balorazioak ikusi"
+                aria-label="Balorazioak ikusi"
+              >
+                🔍
+              </button>
             </div>
           </div>
 
-          {/* CRITERIOS */}
+          {/* =========================
+              CRITERIOS
+              ========================= */}
 
           <div className="criteria-summary">
             {criterionAverages.map(
@@ -867,6 +981,10 @@ export default function BookDetail({
             )}
           </div>
 
+          {/* =========================
+              DATOS TÉCNICOS
+              ========================= */}
+
           <div className="book-metadata">
             <div>
               <span>
@@ -905,14 +1023,22 @@ export default function BookDetail({
             </div>
           </div>
 
+          {/* =========================
+              ESTILOS
+              ========================= */}
+
           {styles.length > 0 && (
             <div className="detail-styles">
               {styles.map(
                 (style) => (
                   <span
-                    key={style.id}
+                    key={
+                      style.id
+                    }
                   >
-                    {style.name}
+                    {
+                      style.name
+                    }
                   </span>
                 )
               )}
@@ -921,7 +1047,9 @@ export default function BookDetail({
         </div>
       </div>
 
-      {/* COMENTARIOS */}
+      {/* =========================
+          COMENTARIOS
+          ========================= */}
 
       <section className="comments-section">
         <div className="comments-heading">
@@ -934,7 +1062,8 @@ export default function BookDetail({
           </span>
         </div>
 
-        {comments.length === 0 ? (
+        {comments.length ===
+        0 ? (
           <div className="empty-library">
             <strong>
               Oraindik ez dago
@@ -985,6 +1114,8 @@ export default function BookDetail({
                           comment.id
                         )
                       }
+                      title="Iruzkina ezabatu"
+                      aria-label="Iruzkina ezabatu"
                     >
                       🗑️
                     </button>
@@ -1002,16 +1133,29 @@ export default function BookDetail({
         )}
       </section>
 
-      {/* PASSWORD BORRADO */}
+      {/* =========================
+          MODAL BORRADO
+          ========================= */}
 
       {deleteTarget && (
-        <div className="modal-overlay">
-          <div className="modal">
+        <div
+          className="modal-overlay"
+          onMouseDown={
+            closeDeleteModal
+          }
+        >
+          <div
+            className="modal"
+            onMouseDown={(e) =>
+              e.stopPropagation()
+            }
+          >
             <button
               className="modal-close"
               onClick={
                 closeDeleteModal
               }
+              aria-label="Itxi"
             >
               ×
             </button>
@@ -1023,6 +1167,13 @@ export default function BookDetail({
             <h2>
               Irakaslearen baimena
             </h2>
+
+            <p>
+              {deleteTarget.type ===
+              'book'
+                ? 'Liburua ezabatzeko irakaslearen pasahitza behar da.'
+                : 'Iruzkina ezabatzeko irakaslearen pasahitza behar da.'}
+            </p>
 
             <form
               onSubmit={
@@ -1044,6 +1195,7 @@ export default function BookDetail({
                   )
                 }
                 autoFocus
+                placeholder="••••••••"
               />
 
               {passwordError && (
@@ -1057,19 +1209,38 @@ export default function BookDetail({
               <button
                 className="danger-button"
                 type="submit"
+                disabled={
+                  deleting
+                }
               >
-                Ezabatu
+                {deleting
+                  ? 'Ezabatzen...'
+                  : 'Ezabatu'}
               </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* PASSWORD PARA VER RATINGS */}
+      {/* =========================
+          PASSWORD PARA RATINGS
+          ========================= */}
 
       {showRatingsPassword && (
-        <div className="modal-overlay">
-          <div className="modal">
+        <div
+          className="modal-overlay"
+          onMouseDown={() =>
+            setShowRatingsPassword(
+              false
+            )
+          }
+        >
+          <div
+            className="modal"
+            onMouseDown={(e) =>
+              e.stopPropagation()
+            }
+          >
             <button
               className="modal-close"
               onClick={() =>
@@ -1077,6 +1248,7 @@ export default function BookDetail({
                   false
                 )
               }
+              aria-label="Itxi"
             >
               ×
             </button>
@@ -1114,6 +1286,7 @@ export default function BookDetail({
                   )
                 }
                 autoFocus
+                placeholder="••••••••"
               />
 
               {ratingsPasswordError && (
@@ -1135,7 +1308,9 @@ export default function BookDetail({
         </div>
       )}
 
-      {/* LISTA DE RATINGS */}
+      {/* =========================
+          RATINGS INDIVIDUALES
+          ========================= */}
 
       {showIndividualRatings && (
         <div
@@ -1159,6 +1334,7 @@ export default function BookDetail({
                   false
                 )
               }
+              aria-label="Itxi"
             >
               ×
             </button>
@@ -1233,6 +1409,8 @@ export default function BookDetail({
                               rating.id
                             )
                           }
+                          title="Balorazioa ezabatu"
+                          aria-label="Balorazioa ezabatu"
                         >
                           🗑️
                         </button>
@@ -1272,9 +1450,7 @@ export default function BookDetail({
                                   criterion.id
                               )
 
-                            if (
-                              !score
-                            ) {
+                            if (!score) {
                               return null
                             }
 
@@ -1325,7 +1501,7 @@ export default function BookDetail({
 }
 
 // =========================
-// ESTRELLAS
+// ESTRELLAS CORREGIDAS
 // =========================
 
 function StarRating({
@@ -1335,47 +1511,61 @@ function StarRating({
   value: number | null
   small?: boolean
 }) {
-  const percentage =
-    value === null
-      ? 0
-      : Math.max(
-          0,
-          Math.min(
-            100,
-            (value / 5) * 100
-          )
-        )
+  const className =
+    small
+      ? 'star-rating star-rating-small'
+      : 'star-rating'
 
   return (
     <span
       className={
-        small
-          ? 'stars stars-small'
-          : 'stars'
+        className
       }
       aria-label={
         value === null
           ? 'Baloraziorik gabe'
-          : `${value.toFixed(
-              1
-            )} / 5`
+          : `${value.toFixed(1)} / 5`
       }
     >
-      <span className="stars-background">
-        ★★★★★
-      </span>
+      {[0, 1, 2, 3, 4].map(
+        (index) => {
+          const fill =
+            value === null
+              ? 0
+              : Math.max(
+                  0,
+                  Math.min(
+                    1,
+                    value -
+                      index
+                  )
+                )
 
-      <span
-        className="stars-foreground"
-        style={{
-          width: `${percentage}%`,
-        }}
-      >
-        ★★★★★
-      </span>
+          return (
+            <span
+              key={
+                index
+              }
+              className="single-star"
+              style={
+                {
+                  '--fill':
+                    `${fill * 100}%`,
+                } as React.CSSProperties
+              }
+            >
+              ★
+            </span>
+          )
+        }
+      )}
     </span>
   )
 }
+
+// =========================
+// FORMATEO DE IDIOMA
+// =========================
 
 function formatLanguage(
   language: string
@@ -1395,6 +1585,10 @@ function formatLanguage(
   }
 }
 
+// =========================
+// FECHA Y HORA
+// =========================
+
 function formatDateTime(
   value: string
 ) {
@@ -1404,6 +1598,7 @@ function formatDateTime(
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
+
       hour: '2-digit',
       minute: '2-digit',
     }
@@ -1411,6 +1606,10 @@ function formatDateTime(
     new Date(value)
   )
 }
+
+// =========================
+// NOMBRE PORTADA STORAGE
+// =========================
 
 function getCoverFileName(
   publicUrl: string

@@ -2958,3 +2958,44 @@ que la barra es interactiva.
     min-width: 48px;
   }
 }
+
+/* ==============================
+   ESTRELLAS
+   ============================== */
+
+.star-rating {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 2px;
+
+  font-size: 24px;
+  line-height: 1;
+}
+
+.star-rating-small {
+  font-size: 18px;
+}
+
+.single-star {
+  --fill: 0%;
+
+  display: inline-block;
+
+  background:
+    linear-gradient(
+      to right,
+      #c79b3b 0%,
+      #c79b3b var(--fill),
+      #d8d8d1 var(--fill),
+      #d8d8d1 100%
+    );
+
+  background-clip: text;
+  -webkit-background-clip: text;
+
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+
+  line-height: 1;
+}
