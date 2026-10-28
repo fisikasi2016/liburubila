@@ -20,10 +20,7 @@ export default function App() {
   const [
     pantalla,
     setPantalla,
-  ] =
-    useState<Pantalla>(
-      'inicio'
-    )
+  ] = useState<Pantalla>('inicio')
 
   // ============================================================
   // PASSWORD ERREKATXO
@@ -32,20 +29,17 @@ export default function App() {
   const [
     mostrarPassword,
     setMostrarPassword,
-  ] =
-    useState(false)
+  ] = useState(false)
 
   const [
     password,
     setPassword,
-  ] =
-    useState('')
+  ] = useState('')
 
   const [
     errorPassword,
     setErrorPassword,
-  ] =
-    useState('')
+  ] = useState('')
 
   // ============================================================
   // LIBURU BERRIA
@@ -54,16 +48,12 @@ export default function App() {
   const [
     createdBookId,
     setCreatedBookId,
-  ] =
-    useState<
-      number | null
-    >(null)
+  ] = useState<number | null>(null)
 
   const [
     showCreatedModal,
     setShowCreatedModal,
-  ] =
-    useState(false)
+  ] = useState(false)
 
   // ============================================================
   // BALORAZIOA
@@ -72,16 +62,12 @@ export default function App() {
   const [
     selectedBookId,
     setSelectedBookId,
-  ] =
-    useState<
-      number | null
-    >(null)
+  ] = useState<number | null>(null)
 
   const [
     showRatingModal,
     setShowRatingModal,
-  ] =
-    useState(false)
+  ] = useState(false)
 
   // ============================================================
   // LIBURU FITXA
@@ -90,28 +76,20 @@ export default function App() {
   const [
     detailBookId,
     setDetailBookId,
-  ] =
-    useState<
-      number | null
-    >(null)
+  ] = useState<number | null>(null)
 
   // ============================================================
-  // PASSWORD FLOW
+  // PASSWORD
   // ============================================================
 
   function openRatingAccess() {
     setPassword('')
     setErrorPassword('')
-    setMostrarPassword(
-      true
-    )
+    setMostrarPassword(true)
   }
 
   function closePasswordModal() {
-    setMostrarPassword(
-      false
-    )
-
+    setMostrarPassword(false)
     setPassword('')
     setErrorPassword('')
   }
@@ -121,10 +99,7 @@ export default function App() {
   ) {
     e.preventDefault()
 
-    if (
-      password !==
-      'errekatxo'
-    ) {
+    if (password !== 'errekatxo') {
       setErrorPassword(
         'Pasahitza ez da zuzena.'
       )
@@ -132,67 +107,43 @@ export default function App() {
       return
     }
 
-    setMostrarPassword(
-      false
-    )
-
+    setMostrarPassword(false)
     setPassword('')
     setErrorPassword('')
 
-    setPantalla(
-      'gestion'
-    )
+    setPantalla('gestion')
   }
 
   // ============================================================
-  // LIBURU BERRIA SORTU
+  // LIBURU BERRIA
   // ============================================================
 
   function handleBookCreated(
     bookId: number
   ) {
-    setCreatedBookId(
-      bookId
-    )
-
-    setShowCreatedModal(
-      true
-    )
+    setCreatedBookId(bookId)
+    setShowCreatedModal(true)
   }
 
   function rateCreatedBook() {
-    if (
-      createdBookId ===
-      null
-    ) {
+    if (createdBookId === null) {
       return
     }
 
-    setShowCreatedModal(
-      false
-    )
+    setShowCreatedModal(false)
 
     setSelectedBookId(
       createdBookId
     )
 
-    setShowRatingModal(
-      true
-    )
+    setShowRatingModal(true)
   }
 
-  function closeCreatedModal() {
-    setShowCreatedModal(
-      false
-    )
+  function finishCreatedBook() {
+    setShowCreatedModal(false)
+    setCreatedBookId(null)
 
-    setCreatedBookId(
-      null
-    )
-
-    setPantalla(
-      'gestion'
-    )
+    setPantalla('gestion')
   }
 
   // ============================================================
@@ -202,13 +153,8 @@ export default function App() {
   function selectExistingBook(
     bookId: number
   ) {
-    setSelectedBookId(
-      bookId
-    )
-
-    setShowRatingModal(
-      true
-    )
+    setSelectedBookId(bookId)
+    setShowRatingModal(true)
   }
 
   // ============================================================
@@ -216,27 +162,15 @@ export default function App() {
   // ============================================================
 
   function closeRatingModal() {
-    setShowRatingModal(
-      false
-    )
-
-    setSelectedBookId(
-      null
-    )
+    setShowRatingModal(false)
+    setSelectedBookId(null)
   }
 
   function ratingSaved() {
-    setShowRatingModal(
-      false
-    )
+    setShowRatingModal(false)
+    setSelectedBookId(null)
 
-    setSelectedBookId(
-      null
-    )
-
-    setPantalla(
-      'gestion'
-    )
+    setPantalla('gestion')
   }
 
   // ============================================================
@@ -246,9 +180,7 @@ export default function App() {
   function openBookDetail(
     bookId: number
   ) {
-    setDetailBookId(
-      bookId
-    )
+    setDetailBookId(bookId)
 
     setPantalla(
       'liburu-fitxa'
@@ -256,24 +188,18 @@ export default function App() {
   }
 
   // ============================================================
-  // BOOK DETAIL
+  // LIBURU FITXA
   // ============================================================
 
   if (
-    pantalla ===
-      'liburu-fitxa' &&
-    detailBookId !==
-      null
+    pantalla === 'liburu-fitxa' &&
+    detailBookId !== null
   ) {
     return (
       <BookDetail
-        bookId={
-          detailBookId
-        }
+        bookId={detailBookId}
         onBack={() => {
-          setDetailBookId(
-            null
-          )
+          setDetailBookId(null)
 
           setPantalla(
             'biblioteca'
@@ -288,8 +214,7 @@ export default function App() {
   // ============================================================
 
   if (
-    pantalla ===
-    'liburu-berria'
+    pantalla === 'liburu-berria'
   ) {
     return (
       <>
@@ -308,8 +233,12 @@ export default function App() {
           createdBookId !==
             null && (
             <BookCreatedModal
-              onRate={rateCreatedBook}
-              onFinish={closeCreatedModal}
+              onRate={
+                rateCreatedBook
+              }
+              onFinish={
+                finishCreatedBook
+              }
             />
           )}
 
@@ -398,9 +327,7 @@ export default function App() {
 
         {mostrarPassword && (
           <PasswordModal
-            password={
-              password
-            }
+            password={password}
             error={
               errorPassword
             }
@@ -420,12 +347,11 @@ export default function App() {
   }
 
   // ============================================================
-  // GESTIÓN
+  // GESTION
   // ============================================================
 
   if (
-    pantalla ===
-    'gestion'
+    pantalla === 'gestion'
   ) {
     return (
       <main className="app-shell">
@@ -443,17 +369,20 @@ export default function App() {
           </button>
 
           <header className="home-header">
-            <div className="brand-mark">
-              L
-            </div>
+            <div className="home-brand">
+              <img
+                src="/liburubila-logo.png"
+                alt="Liburubila"
+                className="home-brand-logo"
+              />
 
-            <div className="small-logo">
-              LIBURUBILA
+              <span className="home-brand-name">
+                LIBURUBILA
+              </span>
             </div>
 
             <h1>
-              Zer egin nahi
-              duzu?
+              Zer egin nahi duzu?
             </h1>
           </header>
 
@@ -480,8 +409,9 @@ export default function App() {
 
                 <p>
                   Liburutegian
-                  oraindik ez dagoen
-                  liburu bat gehitu.
+                  oraindik ez
+                  dagoen liburu
+                  bat gehitu.
                 </p>
               </div>
 
@@ -512,8 +442,9 @@ export default function App() {
 
                 <p>
                   Liburutegiko
-                  liburu bat bilatu
-                  eta baloratu.
+                  liburu bat
+                  bilatu eta
+                  baloratu.
                 </p>
               </div>
 
@@ -536,13 +467,21 @@ export default function App() {
       <main className="app-shell">
         <section className="home-page">
           <header className="home-header main-home-header">
-            <div className="brand-mark">
-              L
+            {/* LOGO + LIBURUBILA */}
+
+            <div className="home-brand">
+              <img
+                src="/liburubila-logo.png"
+                alt="Liburubila"
+                className="home-brand-logo"
+              />
+
+              <span className="home-brand-name">
+                LIBURUBILA
+              </span>
             </div>
 
-            <div className="small-logo">
-              LIBURUBILA
-            </div>
+            {/* CITA */}
 
             <blockquote className="home-quote">
               <p>
@@ -560,7 +499,17 @@ export default function App() {
                 Urretabizkaia
               </cite>
             </blockquote>
+
+            {/* PREGUNTA */}
+
+            <h1 className="home-question">
+              Zer egin nahi duzu?
+            </h1>
           </header>
+
+          {/* ==================================================
+              AUKERAK
+              ================================================== */}
 
           <div className="home-options">
             {/* LIBURU BAT BALORATU */}
@@ -594,7 +543,7 @@ export default function App() {
               </span>
             </button>
 
-            {/* ZER IRAKUR DEZAKET? */}
+            {/* ZER IRAKUR DEZAKET */}
 
             <button
               className="home-option-card"
@@ -633,12 +582,8 @@ export default function App() {
 
       {mostrarPassword && (
         <PasswordModal
-          password={
-            password
-          }
-          error={
-            errorPassword
-          }
+          password={password}
+          error={errorPassword}
           onPasswordChange={
             setPassword
           }
@@ -667,12 +612,15 @@ function PasswordModal({
 }: {
   password: string
   error: string
+
   onPasswordChange: (
     value: string
   ) => void
+
   onSubmit: (
     e: React.FormEvent
   ) => void
+
   onClose: () => void
 }) {
   return (
@@ -684,18 +632,14 @@ function PasswordModal({
     >
       <div
         className="modal"
-        onMouseDown={(
-          e
-        ) =>
+        onMouseDown={(e) =>
           e.stopPropagation()
         }
       >
         <button
           className="modal-close"
           type="button"
-          onClick={
-            onClose
-          }
+          onClick={onClose}
           aria-label="Itxi"
         >
           ×
@@ -726,12 +670,8 @@ function PasswordModal({
 
           <input
             type="password"
-            value={
-              password
-            }
-            onChange={(
-              e
-            ) =>
+            value={password}
+            onChange={(e) =>
               onPasswordChange(
                 e.target
                   .value

@@ -5857,3 +5857,439 @@ que la barra es interactiva.
 .library-header {
   display: block;
 }
+
+/* ==========================================================
+   HASIERA · BERTSIO EDITORIALA
+   ========================================================== */
+
+.main-home-header {
+  width: min(760px, 100%);
+  margin: 0 auto 38px;
+
+  text-align: center;
+}
+
+
+/* MARCA */
+
+.home-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 11px;
+
+  margin-bottom: 34px;
+}
+
+.home-brand-logo {
+  width: 42px;
+  height: 42px;
+
+  object-fit: contain;
+
+  border-radius: 9px;
+}
+
+.home-brand span {
+  color: #263c2d;
+
+  font-size: 0.78rem;
+  font-weight: 600;
+
+  letter-spacing: 0.32em;
+}
+
+
+/* CITA */
+
+.home-quote {
+  width: min(700px, 100%);
+
+  margin: 0 auto;
+  padding: 0;
+
+  border: 0;
+
+  text-align: center;
+}
+
+.home-quote p {
+  margin: 0;
+
+  color: #263c2d;
+
+  font-size: clamp(
+    1.55rem,
+    3.2vw,
+    2.25rem
+  );
+
+  line-height: 1.4;
+
+  font-weight: 400;
+}
+
+.home-quote cite {
+  display: block;
+
+  margin-top: 18px;
+
+  color: #b39145;
+
+  font-size: 0.9rem;
+  font-style: normal;
+  font-weight: 600;
+}
+
+
+/* ZER EGIN NAHI DUZU */
+
+.home-question {
+  margin: 42px 0 22px !important;
+
+  color: #263c2d;
+
+  font-size: 1.05rem !important;
+  font-weight: 600 !important;
+
+  letter-spacing: 0.02em;
+}
+
+
+/* ==========================================================
+   BOTONES MÁS PEQUEÑOS
+   ========================================================== */
+
+.home-options {
+  width: min(680px, 100%);
+
+  margin: 0 auto;
+
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 14px;
+}
+
+.home-option-card {
+  min-height: 135px;
+
+  padding: 18px 20px;
+
+  border-radius: 17px;
+}
+
+.home-option-icon {
+  width: 34px;
+  height: 34px;
+
+  border-radius: 9px;
+
+  font-size: 1rem;
+}
+
+.home-option-card h2 {
+  margin: 11px 0 5px;
+
+  font-size: 1.05rem;
+}
+
+.home-option-card p {
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.home-option-arrow {
+  margin-top: 10px;
+
+  font-size: 1rem;
+}
+
+
+/* ==========================================================
+   MÓVIL
+   ========================================================== */
+
+@media (max-width: 650px) {
+  .home-page {
+    width: calc(100% - 32px);
+
+    padding-top: 34px;
+  }
+
+  .home-brand {
+    margin-bottom: 30px;
+  }
+
+  .home-brand-logo {
+    width: 38px;
+    height: 38px;
+  }
+
+  .home-brand span {
+    font-size: 0.7rem;
+
+    letter-spacing: 0.28em;
+  }
+
+  .home-quote {
+    width: 100%;
+  }
+
+  .home-quote p {
+    font-size: 1.42rem;
+
+    line-height: 1.42;
+  }
+
+  .home-quote cite {
+    margin-top: 14px;
+
+    font-size: 0.82rem;
+  }
+
+  .home-question {
+    margin: 34px 0 18px !important;
+
+    font-size: 1rem !important;
+  }
+
+  .home-options {
+    grid-template-columns: 1fr 1fr;
+
+    gap: 10px;
+  }
+
+  .home-option-card {
+    min-height: 125px;
+
+    padding: 15px;
+
+    border-radius: 15px;
+  }
+
+  .home-option-icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .home-option-card h2 {
+    font-size: 0.94rem;
+  }
+
+  .home-option-card p {
+    font-size: 0.7rem;
+  }
+}
+
+
+/* PANTALLAS MUY ESTRECHAS */
+
+@media (max-width: 380px) {
+  .home-options {
+    grid-template-columns: 1fr;
+  }
+
+  .home-option-card {
+    min-height: 115px;
+  }
+}
+
+/* ==========================================================
+   HASIERA · LIBURUBILA BRAND
+   ========================================================== */
+
+.app-shell {
+  min-height: 100vh;
+
+  /* mantenemos el fondo original */
+  background: #f6f4ed;
+}
+
+.main-home-header {
+  width: min(800px, 100%);
+  margin: 0 auto 34px;
+
+  text-align: center;
+}
+
+
+/* LOGO + LIBURUBILA */
+
+.home-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 16px;
+
+  margin-bottom: 28px;
+}
+
+.home-brand-logo {
+  width: 56px;
+  height: 56px;
+
+  object-fit: contain;
+
+  flex: 0 0 auto;
+}
+
+.home-brand-name {
+  color: #263c2d;
+
+  font-size: clamp(3.2rem, 8vw, 5.5rem);
+  font-weight: 700;
+
+  letter-spacing: 0.06em;
+
+  line-height: 0.95;
+}
+
+
+/* CITA */
+
+.home-quote {
+  width: min(650px, 100%);
+  margin: 0 auto;
+
+  padding: 0;
+
+  border: 0;
+
+  text-align: center;
+}
+
+.home-quote p {
+  margin: 0;
+
+  color: #687168;
+
+  font-size: clamp(0.95rem, 2vw, 1.15rem);
+  line-height: 1.55;
+
+  font-style: italic;
+  font-weight: 400;
+}
+
+.home-quote cite {
+  display: block;
+
+  margin-top: 9px;
+
+  color: #8f7a48;
+
+  font-size: 0.78rem;
+  font-style: italic;
+}
+
+
+/* ZER EGIN NAHI DUZU */
+
+.home-question {
+  margin: 34px 0 18px !important;
+
+  color: #263c2d;
+
+  font-size: 1.05rem !important;
+  font-weight: 600 !important;
+}
+
+
+/* ==========================================================
+   MÓVIL
+   ========================================================== */
+
+@media (max-width: 650px) {
+  .home-brand {
+    gap: 11px;
+
+    margin-bottom: 22px;
+  }
+
+  .home-brand-logo {
+    width: 44px;
+    height: 44px;
+  }
+
+  .home-brand-logo {
+  width: 52px;
+  height: 52px;
+}
+
+.home-brand-name {
+  font-size: 2.8rem;
+  letter-spacing: 0.04em;
+}
+
+  .home-quote {
+    width: calc(100% - 20px);
+  }
+
+  .home-quote p {
+    font-size: 0.92rem;
+
+    line-height: 1.5;
+  }
+
+  .home-quote cite {
+    font-size: 0.72rem;
+  }
+
+  .home-question {
+    margin-top: 28px !important;
+  }
+}
+
+.home-brand-name {
+  color: #263c2d;
+
+  font-size: 1.05rem;
+  font-weight: 600;
+
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+.home-question {
+  margin: 34px 0 18px !important;
+
+  color: #263c2d;
+
+  font-size: 1.05rem !important;
+  font-weight: 600 !important;
+
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 650px) {
+  .home-brand-name {
+    font-size: 1rem;
+  }
+
+  .home-question {
+    font-size: 1rem !important;
+  }
+}
+
+.home-brand-name {
+  color: #263c2d;
+
+  font-size: 1.58rem;
+  font-weight: 600;
+
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+@media (max-width: 650px) {
+  .home-brand-name {
+    font-size: 1.5rem;
+  }
+
+  .home-question {
+    font-size: 1rem !important;
+  }
+}
