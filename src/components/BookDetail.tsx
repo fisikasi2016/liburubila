@@ -9,9 +9,17 @@ type Book = {
   pages: number
   language: string
   cover_url: string | null
+  genre_id: number | null
+  topic_id: number | null
+  subtopic_id: number | null
 }
 
-type Style = {
+type Classification = {
+  id: number
+  name: string
+}
+
+type Tag = {
   id: number
   name: string
 }
@@ -19,13 +27,15 @@ type Style = {
 type Criterion = {
   id: number
   name: string
+  description: string | null
   position: number
 }
 
 type Rating = {
   id: number
   initials: string
-  age: number
+  age: number | null
+  level: string | null
   comment: string | null
   created_at: string
 }
@@ -36,8 +46,20 @@ type Score = {
   score: number
 }
 
-type BookStyleRelation = {
-  style_id: number
+type AgeRange = {
+  id: number
+  code: string
+  label: string
+  position: number
+}
+
+type RatingAgeRange = {
+  rating_id: number
+  age_range_id: number
+}
+
+type BookTagRelation = {
+  tag_id: number
 }
 
 type DeleteTarget =
@@ -62,8 +84,17 @@ export default function BookDetail({
   const [book, setBook] =
     useState<Book | null>(null)
 
-  const [styles, setStyles] =
-    useState<Style[]>([])
+  const [genre, setGenre] =
+    useState<Classification | null>(null)
+
+  const [topic, setTopic] =
+    useState<Classification | null>(null)
+
+  const [subtopic, setSubtopic] =
+    useState<Classification | null>(null)
+
+  const [tags, setTags] =
+    useState<Tag[]>([])
 
   const [criteria, setCriteria] =
     useState<Criterion[]>([])
@@ -74,6 +105,14 @@ export default function BookDetail({
   const [scores, setScores] =
     useState<Score[]>([])
 
+  const [ageRanges, setAgeRanges] =
+    useState<AgeRange[]>([])
+
+  const [
+    ratingAgeRanges,
+    setRatingAgeRanges,
+  ] = useState<RatingAgeRange[]>([])
+
   const [loading, setLoading] =
     useState(true)
 
@@ -81,7 +120,7 @@ export default function BookDetail({
     useState('')
 
   // =========================
-  // BORRADO LIBRO / COMENTARIO
+  // BORRADO
   // =========================
 
   const [
@@ -99,13 +138,11 @@ export default function BookDetail({
     setPasswordError,
   ] = useState('')
 
-  const [
-    deleting,
-    setDeleting,
-  ] = useState(false)
+  const [deleting, setDeleting] =
+    useState(false)
 
   // =========================
-  // VALORACIONES INDIVIDUALES
+  // BALORAZIO INDIVIDUALAK
   // =========================
 
   const [
@@ -137,100 +174,136 @@ export default function BookDetail({
     loadBook()
   }, [bookId])
 
+  // ============================================================
+  // CARGAR DATOS
+  // ============================================================
+
   async function loadBook() {
     try {
       setLoading(true)
       setError('')
 
-      // =========================
-      // LIBRO
-      // =========================
+      // ==========================================================
+      // PRIMERA TANDA
+      // Todo lo que no depende de otro resultado se pide a la vez.
+      // ==========================================================
 
-      const {
-        data: bookData,
-        error: bookError,
-      } = await supabase
-        .from('books')
-        .select(`
-          id,
-          title,
-          author,
-          publication_date,
-          pages,
-          language,
-          cover_url
-        `)
-        .eq('id', bookId)
-        .single()
+      const [
+        bookResult,
+        criteriaResult,
+        ratingsResult,
+        ageRangesResult,
+        tagRelationsResult,
+      ] = await Promise.all([
+        supabase
+          .from('books')
+          .select(`
+            id,
+            title,
+            author,
+            publication_date,
+            pages,
+            language,
+            cover_url,
+            genre_id,
+            topic_id,
+            subtopic_id
+          `)
+          .eq('id', bookId)
+          .single(),
 
-      if (bookError) {
-        throw bookError
+        supabase
+          .from('criteria')
+          .select(`
+            id,
+            name,
+            description,
+            position
+          `)
+          .eq('active', true)
+          .order('position', {
+            ascending: true,
+          }),
+
+        supabase
+          .from('ratings')
+          .select(`
+            id,
+            initials,
+            age,
+            level,
+            comment,
+            created_at
+          `)
+          .eq('book_id', bookId)
+          .order('created_at', {
+            ascending: false,
+          }),
+
+        supabase
+          .from(
+            'recommendation_age_ranges'
+          )
+          .select(`
+            id,
+            code,
+            label,
+            position
+          `)
+          .order('position', {
+            ascending: true,
+          }),
+
+        supabase
+          .from('book_tags')
+          .select('tag_id')
+          .eq('book_id', bookId),
+      ])
+
+      if (bookResult.error) {
+        throw bookResult.error
       }
 
-      setBook(bookData)
-
-      // =========================
-      // CRITERIOS
-      // =========================
-
-      const {
-        data: criteriaData,
-        error: criteriaError,
-      } = await supabase
-        .from('criteria')
-        .select(`
-          id,
-          name,
-          position
-        `)
-        .order('position', {
-          ascending: true,
-        })
-
-      if (criteriaError) {
-        console.error(
-          'Error criterios:',
-          criteriaError
-        )
+      if (criteriaResult.error) {
+        throw criteriaResult.error
       }
 
-      setCriteria(
-        criteriaData ?? []
-      )
-
-      // =========================
-      // APORTACIONES
-      // =========================
-
-      const {
-        data: ratingsData,
-        error: ratingsError,
-      } = await supabase
-        .from('ratings')
-        .select(`
-          id,
-          initials,
-          age,
-          comment,
-          created_at
-        `)
-        .eq('book_id', bookId)
-        .order('created_at', {
-          ascending: false,
-        })
-
-      if (ratingsError) {
-        throw ratingsError
+      if (ratingsResult.error) {
+        throw ratingsResult.error
       }
+
+      if (ageRangesResult.error) {
+        throw ageRangesResult.error
+      }
+
+      if (tagRelationsResult.error) {
+        throw tagRelationsResult.error
+      }
+
+      const loadedBook =
+        bookResult.data as Book
 
       const loadedRatings =
-        ratingsData ?? []
+        (ratingsResult.data ?? []) as Rating[]
 
+      const loadedCriteria =
+        (criteriaResult.data ?? []) as Criterion[]
+
+      const loadedAgeRanges =
+        (ageRangesResult.data ?? []) as AgeRange[]
+
+      const tagIds =
+        (
+          (tagRelationsResult.data ?? []) as BookTagRelation[]
+        ).map(
+          (relation) =>
+            relation.tag_id
+        )
+
+      setBook(loadedBook)
       setRatings(loadedRatings)
-
-      // =========================
-      // PUNTUACIONES
-      // =========================
+      setCriteria(loadedCriteria)
+      setAgeRanges(loadedAgeRanges)
 
       const ratingIds =
         loadedRatings.map(
@@ -238,106 +311,189 @@ export default function BookDetail({
             rating.id
         )
 
-      if (ratingIds.length > 0) {
-        const {
-          data: scoresData,
-          error: scoresError,
-        } = await supabase
-          .from('rating_scores')
-          .select(`
-            rating_id,
-            criterion_id,
-            score
-          `)
-          .in(
-            'rating_id',
-            ratingIds
-          )
+      // ==========================================================
+      // SEGUNDA TANDA
+      // Ya conocemos IDs de libro, ratings y etiquetas.
+      // Pedimos TODO lo restante simultáneamente.
+      // ==========================================================
 
-        if (scoresError) {
-          throw scoresError
-        }
+      const [
+        scoresResult,
+        ratingAgeRangesResult,
+        genreResult,
+        topicResult,
+        subtopicResult,
+        tagsResult,
+      ] = await Promise.all([
+        ratingIds.length > 0
+          ? supabase
+              .from('rating_scores')
+              .select(`
+                rating_id,
+                criterion_id,
+                score
+              `)
+              .in(
+                'rating_id',
+                ratingIds
+              )
+          : Promise.resolve({
+              data: [],
+              error: null,
+            }),
 
-        setScores(
-          (scoresData ?? []).map(
-            (item) => ({
-              ...item,
-              score: Number(
+        ratingIds.length > 0
+          ? supabase
+              .from(
+                'rating_age_ranges'
+              )
+              .select(`
+                rating_id,
+                age_range_id
+              `)
+              .in(
+                'rating_id',
+                ratingIds
+              )
+          : Promise.resolve({
+              data: [],
+              error: null,
+            }),
+
+        loadedBook.genre_id
+          ? supabase
+              .from('genres')
+              .select('id, name')
+              .eq(
+                'id',
+                loadedBook.genre_id
+              )
+              .maybeSingle()
+          : Promise.resolve({
+              data: null,
+              error: null,
+            }),
+
+        loadedBook.topic_id
+          ? supabase
+              .from('topics')
+              .select('id, name')
+              .eq(
+                'id',
+                loadedBook.topic_id
+              )
+              .maybeSingle()
+          : Promise.resolve({
+              data: null,
+              error: null,
+            }),
+
+        loadedBook.subtopic_id
+          ? supabase
+              .from('subtopics')
+              .select('id, name')
+              .eq(
+                'id',
+                loadedBook.subtopic_id
+              )
+              .maybeSingle()
+          : Promise.resolve({
+              data: null,
+              error: null,
+            }),
+
+        tagIds.length > 0
+          ? supabase
+              .from('tags')
+              .select('id, name')
+              .in(
+                'id',
+                tagIds
+              )
+              .order('name', {
+                ascending: true,
+              })
+          : Promise.resolve({
+              data: [],
+              error: null,
+            }),
+      ])
+
+      if (scoresResult.error) {
+        throw scoresResult.error
+      }
+
+      if (
+        ratingAgeRangesResult.error
+      ) {
+        throw ratingAgeRangesResult.error
+      }
+
+      if (genreResult.error) {
+        throw genreResult.error
+      }
+
+      if (topicResult.error) {
+        throw topicResult.error
+      }
+
+      if (subtopicResult.error) {
+        throw subtopicResult.error
+      }
+
+      if (tagsResult.error) {
+        throw tagsResult.error
+      }
+
+      setScores(
+        (scoresResult.data ?? []).map(
+          (item) => ({
+            rating_id:
+              item.rating_id,
+
+            criterion_id:
+              item.criterion_id,
+
+            score:
+              Number(
                 item.score
               ),
-            })
-          )
+          })
         )
-      } else {
-        setScores([])
-      }
+      )
 
-      // =========================
-      // ESTILOS
-      // =========================
+      setRatingAgeRanges(
+        (ratingAgeRangesResult.data ??
+          []) as RatingAgeRange[]
+      )
 
-      const {
-        data: relationsData,
-        error: relationsError,
-      } = await supabase
-        .from('book_styles')
-        .select('style_id')
-        .eq('book_id', bookId)
-
-      if (relationsError) {
-        console.error(
-          'Error relaciones estilos:',
-          relationsError
-        )
-
-        setStyles([])
-      } else {
-        const styleIds =
-          (
-            (relationsData ??
-              []) as BookStyleRelation[]
-          ).map(
-            (relation) =>
-              relation.style_id
-          )
-
-        if (styleIds.length > 0) {
-          const {
-            data: stylesData,
-            error: stylesError,
-          } = await supabase
-            .from('styles')
-            .select(`
-              id,
-              name
-            `)
-            .in(
-              'id',
-              styleIds
+      setGenre(
+        genreResult.data
+          ? (
+              genreResult.data as Classification
             )
-            .order(
-              'name',
-              {
-                ascending: true,
-              }
-            )
+          : null
+      )
 
-          if (stylesError) {
-            console.error(
-              'Error estilos:',
-              stylesError
+      setTopic(
+        topicResult.data
+          ? (
+              topicResult.data as Classification
             )
+          : null
+      )
 
-            setStyles([])
-          } else {
-            setStyles(
-              stylesData ?? []
+      setSubtopic(
+        subtopicResult.data
+          ? (
+              subtopicResult.data as Classification
             )
-          }
-        } else {
-          setStyles([])
-        }
-      }
+          : null
+      )
+
+      setTags(
+        (tagsResult.data ?? []) as Tag[]
+      )
     } catch (err) {
       console.error(
         'Error cargando libro:',
@@ -352,29 +508,19 @@ export default function BookDetail({
     }
   }
 
-  // =========================
+  // ============================================================
   // DATOS DERIVADOS
-  // =========================
+  // ============================================================
 
-  const comments =
-    useMemo(() => {
-      return ratings
-        .filter(
-          (rating) =>
-            typeof rating.comment ===
-              'string' &&
-            rating.comment
-              .trim()
-              .length > 0
-        )
-        .map(
-          (rating) => ({
-            ...rating,
-            comment:
-              rating.comment as string,
-          })
-        )
-    }, [ratings])
+  const activeCriterionIds =
+    useMemo(
+      () =>
+        criteria.map(
+          (criterion) =>
+            criterion.id
+        ),
+      [criteria]
+    )
 
   const ratedRatings =
     useMemo(() => {
@@ -383,45 +529,101 @@ export default function BookDetail({
           scores.some(
             (score) =>
               score.rating_id ===
-              rating.id
+                rating.id &&
+              activeCriterionIds.includes(
+                score.criterion_id
+              )
           )
       )
-    }, [ratings, scores])
+    }, [
+      ratings,
+      scores,
+      activeCriterionIds,
+    ])
+
+  const comments =
+    useMemo(() => {
+      return ratings.filter(
+        (rating) =>
+          typeof rating.comment ===
+            'string' &&
+          rating.comment
+            .trim()
+            .length > 0
+      )
+    }, [ratings])
+
+  // ============================================================
+  // NOTA GENERAL
+  // SOLO:
+  // Asebetetze maila
+  // Gomendatuko zenuke?
+  // ============================================================
+
+  const satisfactionCriterion =
+    useMemo(
+      () =>
+        criteria.find(
+          (criterion) =>
+            criterion.name ===
+            'Asebetetze maila'
+        ),
+      [criteria]
+    )
+
+  const recommendationCriterion =
+    useMemo(
+      () =>
+        criteria.find(
+          (criterion) =>
+            criterion.name ===
+            'Gomendatuko zenuke?'
+        ),
+      [criteria]
+    )
 
   const overallAverage =
     useMemo(() => {
+      if (
+        !satisfactionCriterion ||
+        !recommendationCriterion
+      ) {
+        return null
+      }
+
       const individualAverages =
         ratedRatings
-          .map(
-            (rating) => {
-              const ratingScores =
-                scores.filter(
-                  (score) =>
-                    score.rating_id ===
-                    rating.id
-                )
-
-              if (
-                ratingScores.length ===
-                0
-              ) {
-                return null
-              }
-
-              return (
-                ratingScores.reduce(
-                  (
-                    sum,
-                    score
-                  ) =>
-                    sum +
-                    score.score,
-                  0
-                ) /
-                ratingScores.length
+          .map((rating) => {
+            const satisfactionScore =
+              scores.find(
+                (score) =>
+                  score.rating_id ===
+                    rating.id &&
+                  score.criterion_id ===
+                    satisfactionCriterion.id
               )
+
+            const recommendationScore =
+              scores.find(
+                (score) =>
+                  score.rating_id ===
+                    rating.id &&
+                  score.criterion_id ===
+                    recommendationCriterion.id
+              )
+
+            if (
+              !satisfactionScore ||
+              !recommendationScore
+            ) {
+              return null
             }
-          )
+
+            return (
+              satisfactionScore.score +
+              recommendationScore.score
+            ) / 2
+          })
           .filter(
             (
               value
@@ -438,10 +640,7 @@ export default function BookDetail({
 
       return (
         individualAverages.reduce(
-          (
-            sum,
-            value
-          ) =>
+          (sum, value) =>
             sum + value,
           0
         ) /
@@ -450,7 +649,13 @@ export default function BookDetail({
     }, [
       ratedRatings,
       scores,
+      satisfactionCriterion,
+      recommendationCriterion,
     ])
+
+  // ============================================================
+  // MEDIA DE CADA CRITERIO
+  // ============================================================
 
   const criterionAverages =
     useMemo(() => {
@@ -490,14 +695,59 @@ export default function BookDetail({
           }
         }
       )
+    }, [criteria, scores])
+
+  // ============================================================
+  // PORCENTAJES DE EDAD
+  // Denominador = personas que han valorado
+  // ============================================================
+
+  const ageRecommendations =
+    useMemo(() => {
+      const ratedRatingIds =
+        new Set(
+          ratedRatings.map(
+            (rating) =>
+              rating.id
+          )
+        )
+
+      return ageRanges.map(
+        (ageRange) => {
+          const count =
+            ratingAgeRanges.filter(
+              (relation) =>
+                relation.age_range_id ===
+                  ageRange.id &&
+                ratedRatingIds.has(
+                  relation.rating_id
+                )
+            ).length
+
+          const percentage =
+            ratedRatings.length >
+            0
+              ? (count /
+                  ratedRatings.length) *
+                100
+              : 0
+
+          return {
+            ...ageRange,
+            count,
+            percentage,
+          }
+        }
+      )
     }, [
-      criteria,
-      scores,
+      ageRanges,
+      ratingAgeRanges,
+      ratedRatings,
     ])
 
-  // =========================
-  // BORRAR LIBRO / COMENTARIO
-  // =========================
+  // ============================================================
+  // BORRADO LIBRO / COMENTARIO
+  // ============================================================
 
   function requestDeleteBook() {
     setTeacherPassword('')
@@ -542,7 +792,6 @@ export default function BookDetail({
       setPasswordError(
         'Pasahitza ez da zuzena.'
       )
-
       return
     }
 
@@ -591,10 +840,7 @@ export default function BookDetail({
         .update({
           comment: null,
         })
-        .eq(
-          'id',
-          ratingId
-        )
+        .eq('id', ratingId)
 
       if (updateError) {
         throw updateError
@@ -615,9 +861,7 @@ export default function BookDetail({
   }
 
   async function deleteBook() {
-    if (!book) {
-      return
-    }
+    if (!book) return
 
     try {
       setDeleting(true)
@@ -645,7 +889,6 @@ export default function BookDetail({
             storageError
           ) {
             console.error(
-              'Error borrando portada:',
               storageError
             )
           }
@@ -657,10 +900,7 @@ export default function BookDetail({
       } = await supabase
         .from('books')
         .delete()
-        .eq(
-          'id',
-          bookId
-        )
+        .eq('id', bookId)
 
       if (deleteError) {
         throw deleteError
@@ -680,9 +920,9 @@ export default function BookDetail({
     }
   }
 
-  // =========================
-  // ACCESO A RATINGS
-  // =========================
+  // ============================================================
+  // ACCESO DOCENTE
+  // ============================================================
 
   function requestRatingsAccess() {
     setRatingsPassword('')
@@ -702,7 +942,6 @@ export default function BookDetail({
       setRatingsPasswordError(
         'Pasahitza ez da zuzena.'
       )
-
       return
     }
 
@@ -712,9 +951,9 @@ export default function BookDetail({
     setShowIndividualRatings(true)
   }
 
-  // =========================
-  // BORRAR RATING INDIVIDUAL
-  // =========================
+  // ============================================================
+  // BORRAR BALORAZIO INDIVIDUAL
+  // ============================================================
 
   async function deleteIndividualRating(
     ratingId: number
@@ -733,6 +972,7 @@ export default function BookDetail({
         ratingId
       )
 
+      // Eliminamos las puntuaciones.
       const {
         error: scoresError,
       } = await supabase
@@ -747,6 +987,25 @@ export default function BookDetail({
         throw scoresError
       }
 
+      // También eliminamos la
+      // recomendación de edad asociada
+      // a esa valoración.
+      const {
+        error: ageError,
+      } = await supabase
+        .from(
+          'rating_age_ranges'
+        )
+        .delete()
+        .eq(
+          'rating_id',
+          ratingId
+        )
+
+      if (ageError) {
+        throw ageError
+      }
+
       const rating =
         ratings.find(
           (item) =>
@@ -754,6 +1013,8 @@ export default function BookDetail({
             ratingId
         )
 
+      // Si no queda comentario,
+      // eliminamos la fila vacía.
       if (
         !rating?.comment ||
         rating.comment
@@ -789,9 +1050,9 @@ export default function BookDetail({
     }
   }
 
-  // =========================
-  // CARGANDO / ERROR
-  // =========================
+  // ============================================================
+  // CARGANDO
+  // ============================================================
 
   if (loading) {
     return (
@@ -803,10 +1064,7 @@ export default function BookDetail({
     )
   }
 
-  if (
-    error ||
-    !book
-  ) {
+  if (error || !book) {
     return (
       <section className="page">
         <button
@@ -818,17 +1076,17 @@ export default function BookDetail({
 
         <div className="empty-library">
           <strong>
-            Ezin izan da liburua
-            kargatu.
+            Ezin izan da
+            liburua kargatu.
           </strong>
         </div>
       </section>
     )
   }
 
-  // =========================
-  // RENDER PRINCIPAL
-  // =========================
+  // ============================================================
+  // RENDER
+  // ============================================================
 
   return (
     <section className="page">
@@ -853,15 +1111,17 @@ export default function BookDetail({
       </div>
 
       <div className="book-detail">
+        {/* =====================
+            PORTADA
+            ===================== */}
+
         <div className="book-detail-cover">
           {book.cover_url ? (
             <img
               src={
                 book.cover_url
               }
-              alt={
-                book.title
-              }
+              alt={book.title}
             />
           ) : (
             <div className="book-detail-no-cover">
@@ -869,6 +1129,10 @@ export default function BookDetail({
             </div>
           )}
         </div>
+
+        {/* =====================
+            INFORMACIÓN
+            ===================== */}
 
         <div className="book-detail-info">
           <div className="small-logo detail-logo">
@@ -883,9 +1147,9 @@ export default function BookDetail({
             {book.author}
           </p>
 
-          {/* =========================
+          {/* =====================
               NOTA GENERAL
-              ========================= */}
+              ===================== */}
 
           <div className="book-main-rating">
             <span className="rating-label">
@@ -900,41 +1164,47 @@ export default function BookDetail({
               />
 
               <strong>
-                {overallAverage ===
-                null
-                  ? '–'
-                  : overallAverage
-                      .toFixed(1)
-                      .replace(
-                        '.',
-                        ','
-                      )}
+                {formatScore(
+                  overallAverage
+                )}
               </strong>
 
-              <span>
-                (
-                {
-                  ratedRatings.length
-                }
-                )
-              </span>
+              <div className="rating-counts rating-counts-separated">
+                <div className="rating-counts-vertical">
+                  <div className="rating-count-item">
+                    <span>Balorazioak:</span>
 
-              <button
-                className="rating-inspect-button"
-                onClick={
-                  requestRatingsAccess
-                }
-                title="Balorazioak ikusi"
-                aria-label="Balorazioak ikusi"
-              >
-                🔍
-              </button>
+                    <strong>
+                      {ratedRatings.length}
+                    </strong>
+
+                    <button
+                      className="rating-inspect-button"
+                      onClick={requestRatingsAccess}
+                      title="Balorazioak ikusi"
+                      aria-label="Balorazioak ikusi"
+                    >
+                      🔍
+                    </button>
+                  </div>
+
+                  <div className="rating-count-item">
+                    <span>Iruzkinak:</span>
+
+                    <strong>
+                      {comments.length}
+                    </strong>
+                  </div>
+                </div>
+              </div>
             </div>
+
+            
           </div>
 
-          {/* =========================
+          {/* =====================
               CRITERIOS
-              ========================= */}
+              ===================== */}
 
           <div className="criteria-summary">
             {criterionAverages.map(
@@ -963,17 +1233,9 @@ export default function BookDetail({
                     />
 
                     <strong>
-                      {average ===
-                      null
-                        ? '–'
-                        : average
-                            .toFixed(
-                              1
-                            )
-                            .replace(
-                              '.',
-                              ','
-                            )}
+                      {formatScore(
+                        average
+                      )}
                     </strong>
                   </div>
                 </div>
@@ -981,9 +1243,9 @@ export default function BookDetail({
             )}
           </div>
 
-          {/* =========================
-              DATOS TÉCNICOS
-              ========================= */}
+          {/* =====================
+              DATOS
+              ===================== */}
 
           <div className="book-metadata">
             <div>
@@ -1023,22 +1285,60 @@ export default function BookDetail({
             </div>
           </div>
 
-          {/* =========================
-              ESTILOS
-              ========================= */}
+          {/* =====================
+              SAILKAPENA
+              ===================== */}
 
-          {styles.length > 0 && (
-            <div className="detail-styles">
-              {styles.map(
-                (style) => (
+          <div className="book-classification-detail">
+            {genre && (
+              <div>
+                <span>
+                  Generoa
+                </span>
+
+                <strong>
+                  {genre.name}
+                </strong>
+              </div>
+            )}
+
+            {topic && (
+              <div>
+                <span>
+                  Gaia
+                </span>
+
+                <strong>
+                  {topic.name}
+                </strong>
+              </div>
+            )}
+
+            {subtopic && (
+              <div>
+                <span>
+                  Azpigaia
+                </span>
+
+                <strong>
+                  {subtopic.name}
+                </strong>
+              </div>
+            )}
+          </div>
+
+          {/* =====================
+              ETIKETAK
+              ===================== */}
+
+          {tags.length > 0 && (
+            <div className="detail-tags">
+              {tags.map(
+                (tag) => (
                   <span
-                    key={
-                      style.id
-                    }
+                    key={tag.id}
                   >
-                    {
-                      style.name
-                    }
+                    #{tag.name}
                   </span>
                 )
               )}
@@ -1047,9 +1347,68 @@ export default function BookDetail({
         </div>
       </div>
 
-      {/* =========================
-          COMENTARIOS
-          ========================= */}
+      {/* ========================================================
+          ADIN GOMENDIOA
+          ======================================================== */}
+
+      <section className="age-recommendation-section">
+        <div className="section-heading-row">
+          <div>
+            <h2>
+              Zein adinetarako
+              gomendatzen dute?
+            </h2>
+
+            <p>
+              Liburua baloratu duten
+              pertsonen erantzunak.
+            </p>
+          </div>
+        </div>
+
+        <div className="age-recommendation-chart">
+          {ageRecommendations.map(
+            (item) => (
+              <div
+                key={item.id}
+                className="age-chart-row"
+              >
+                <div className="age-chart-label">
+                  <strong>
+                    {item.label}
+                  </strong>
+
+                  <span>
+                    {item.count}{' '}
+                    pertsona
+                  </span>
+                </div>
+
+                <div className="age-chart-track">
+                  <div
+                    className="age-chart-fill"
+                    style={{
+                      width:
+                        `${item.percentage}%`,
+                    }}
+                  />
+                </div>
+
+                <strong className="age-chart-percentage">
+                  {Math.round(
+                    item.percentage
+                  )}
+                  %
+                </strong>
+              </div>
+            )
+          )}
+        </div>
+      </section>
+
+      {/* ========================================================
+          IRUZKINAK
+          ======================================================== */}
 
       <section className="comments-section">
         <div className="comments-heading">
@@ -1062,8 +1421,7 @@ export default function BookDetail({
           </span>
         </div>
 
-        {comments.length ===
-        0 ? (
+        {comments.length === 0 ? (
           <div className="empty-library">
             <strong>
               Oraindik ez dago
@@ -1099,10 +1457,13 @@ export default function BookDetail({
                         </strong>
 
                         <span>
-                          {
-                            comment.age
-                          }{' '}
-                          urte
+                          {comment.level ||
+                            (
+                              comment.age !==
+                                null
+                                ? `${comment.age} urte`
+                                : '–'
+                            )}
                         </span>
                       </div>
                     </div>
@@ -1133,9 +1494,9 @@ export default function BookDetail({
         )}
       </section>
 
-      {/* =========================
-          MODAL BORRADO
-          ========================= */}
+      {/* ========================================================
+          PASSWORD BORRADO
+          ======================================================== */}
 
       {deleteTarget && (
         <div
@@ -1155,7 +1516,6 @@ export default function BookDetail({
               onClick={
                 closeDeleteModal
               }
-              aria-label="Itxi"
             >
               ×
             </button>
@@ -1167,13 +1527,6 @@ export default function BookDetail({
             <h2>
               Irakaslearen baimena
             </h2>
-
-            <p>
-              {deleteTarget.type ===
-              'book'
-                ? 'Liburua ezabatzeko irakaslearen pasahitza behar da.'
-                : 'Iruzkina ezabatzeko irakaslearen pasahitza behar da.'}
-            </p>
 
             <form
               onSubmit={
@@ -1195,7 +1548,6 @@ export default function BookDetail({
                   )
                 }
                 autoFocus
-                placeholder="••••••••"
               />
 
               {passwordError && (
@@ -1222,9 +1574,9 @@ export default function BookDetail({
         </div>
       )}
 
-      {/* =========================
-          PASSWORD PARA RATINGS
-          ========================= */}
+      {/* ========================================================
+          PASSWORD BALORAZIOAK
+          ======================================================== */}
 
       {showRatingsPassword && (
         <div
@@ -1248,7 +1600,6 @@ export default function BookDetail({
                   false
                 )
               }
-              aria-label="Itxi"
             >
               ×
             </button>
@@ -1262,7 +1613,8 @@ export default function BookDetail({
             </h2>
 
             <p>
-              Atal hau irakaslearentzat
+              Atal hau
+              irakaslearentzat
               bakarrik da.
             </p>
 
@@ -1286,7 +1638,6 @@ export default function BookDetail({
                   )
                 }
                 autoFocus
-                placeholder="••••••••"
               />
 
               {ratingsPasswordError && (
@@ -1308,9 +1659,9 @@ export default function BookDetail({
         </div>
       )}
 
-      {/* =========================
-          RATINGS INDIVIDUALES
-          ========================= */}
+      {/* ========================================================
+          BALORAZIO INDIVIDUALAK
+          ======================================================== */}
 
       {showIndividualRatings && (
         <div
@@ -1334,13 +1685,13 @@ export default function BookDetail({
                   false
                 )
               }
-              aria-label="Itxi"
             >
               ×
             </button>
 
             <h2>
-              Banakako balorazioak
+              Banakako
+              balorazioak
             </h2>
 
             <p>
@@ -1357,20 +1708,53 @@ export default function BookDetail({
                     scores.filter(
                       (score) =>
                         score.rating_id ===
-                        rating.id
+                          rating.id &&
+                        activeCriterionIds.includes(
+                          score.criterion_id
+                        )
                     )
 
-                  const average =
-                    ratingScores.reduce(
-                      (
-                        sum,
-                        score
-                      ) =>
-                        sum +
-                        score.score,
-                      0
-                    ) /
-                    ratingScores.length
+                  const satisfaction =
+                    satisfactionCriterion
+                      ? ratingScores.find(
+                          (score) =>
+                            score.criterion_id ===
+                            satisfactionCriterion.id
+                        )
+                      : null
+
+                  const recommendation =
+                    recommendationCriterion
+                      ? ratingScores.find(
+                          (score) =>
+                            score.criterion_id ===
+                            recommendationCriterion.id
+                        )
+                      : null
+
+                  const individualOverall =
+                    satisfaction &&
+                    recommendation
+                      ? (
+                          satisfaction.score +
+                          recommendation.score
+                        ) / 2
+                      : null
+
+                  const selectedAges =
+                    ageRecommendations
+                      .filter(
+                        (ageRange) =>
+                          ratingAgeRanges.some(
+                            (
+                              relation
+                            ) =>
+                              relation.rating_id ===
+                                rating.id &&
+                              relation.age_range_id ===
+                                ageRange.id
+                          )
+                      )
 
                   return (
                     <article
@@ -1388,10 +1772,14 @@ export default function BookDetail({
                           </strong>
 
                           <span>
-                            {
-                              rating.age
-                            }{' '}
-                            urte ·{' '}
+                            {rating.level ||
+                              (
+                                rating.age !==
+                                  null
+                                  ? `${rating.age} urte`
+                                  : '–'
+                              )}
+                            {' · '}
                             {formatDateTime(
                               rating.created_at
                             )}
@@ -1409,8 +1797,6 @@ export default function BookDetail({
                               rating.id
                             )
                           }
-                          title="Balorazioa ezabatu"
-                          aria-label="Balorazioa ezabatu"
                         >
                           🗑️
                         </button>
@@ -1419,20 +1805,15 @@ export default function BookDetail({
                       <div className="individual-main-score">
                         <StarRating
                           value={
-                            average
+                            individualOverall
                           }
                           small
                         />
 
                         <strong>
-                          {average
-                            .toFixed(
-                              1
-                            )
-                            .replace(
-                              '.',
-                              ','
-                            )}
+                          {formatScore(
+                            individualOverall
+                          )}
                         </strong>
                       </div>
 
@@ -1450,10 +1831,6 @@ export default function BookDetail({
                                   criterion.id
                               )
 
-                            if (!score) {
-                              return null
-                            }
-
                             return (
                               <div
                                 key={
@@ -1467,20 +1844,45 @@ export default function BookDetail({
                                 </span>
 
                                 <strong>
-                                  {score.score
-                                    .toFixed(
-                                      1
-                                    )
-                                    .replace(
-                                      '.',
-                                      ','
-                                    )}
+                                  {score
+                                    ? formatScore(
+                                        score.score
+                                      )
+                                    : '–'}
                                 </strong>
                               </div>
                             )
                           }
                         )}
                       </div>
+
+                      {selectedAges.length >
+                        0 && (
+                        <div className="individual-age-tags">
+                          <span>
+                            Gomendatutako
+                            adina:
+                          </span>
+
+                          <div>
+                            {selectedAges.map(
+                              (
+                                ageRange
+                              ) => (
+                                <strong
+                                  key={
+                                    ageRange.id
+                                  }
+                                >
+                                  {
+                                    ageRange.label
+                                  }
+                                </strong>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </article>
                   )
                 }
@@ -1489,7 +1891,8 @@ export default function BookDetail({
               {ratedRatings.length ===
                 0 && (
                 <div className="empty-library">
-                  Ez dago baloraziorik.
+                  Ez dago
+                  baloraziorik.
                 </div>
               )}
             </div>
@@ -1500,9 +1903,9 @@ export default function BookDetail({
   )
 }
 
-// =========================
-// ESTRELLAS CORREGIDAS
-// =========================
+// ============================================================
+// ESTRELLAS
+// ============================================================
 
 function StarRating({
   value,
@@ -1518,9 +1921,7 @@ function StarRating({
 
   return (
     <span
-      className={
-        className
-      }
+      className={className}
       aria-label={
         value === null
           ? 'Baloraziorik gabe'
@@ -1543,9 +1944,7 @@ function StarRating({
 
           return (
             <span
-              key={
-                index
-              }
+              key={index}
               className="single-star"
               style={
                 {
@@ -1563,9 +1962,17 @@ function StarRating({
   )
 }
 
-// =========================
-// FORMATEO DE IDIOMA
-// =========================
+function formatScore(
+  value: number | null
+) {
+  if (value === null) {
+    return '–'
+  }
+
+  return value
+    .toFixed(1)
+    .replace('.', ',')
+}
 
 function formatLanguage(
   language: string
@@ -1585,10 +1992,6 @@ function formatLanguage(
   }
 }
 
-// =========================
-// FECHA Y HORA
-// =========================
-
 function formatDateTime(
   value: string
 ) {
@@ -1598,7 +2001,6 @@ function formatDateTime(
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
-
       hour: '2-digit',
       minute: '2-digit',
     }
@@ -1606,10 +2008,6 @@ function formatDateTime(
     new Date(value)
   )
 }
-
-// =========================
-// NOMBRE PORTADA STORAGE
-// =========================
 
 function getCoverFileName(
   publicUrl: string

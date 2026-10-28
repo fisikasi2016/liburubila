@@ -1,85 +1,79 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
-type Criterion = {
-  id: number
-  name: string
-  position: number
-}
-
-type Style = {
-  id: number
-  name: string
-}
-
-type BookStyle = {
-  book_id: number
-  style_id: number
-}
-
-type RatingScore = {
-  rating_id: number
-  criterion_id: number
-  score: number
-}
-
-type Rating = {
-  id: number
-  book_id: number
-}
-
-type Book = {
-  id: number
-  title: string
-  author: string
-  pages: number
-  language: string
-  cover_url: string | null
-  created_at: string
-  recommended: boolean
-}
-
-type CriterionAverage = {
-  criterionId: number
-  average: number
-}
-
-type BookWithStats = Book & {
-  average: number | null
-  ratingCount: number
-  styleIds: number[]
-  criterionAverages: CriterionAverage[]
-}
-
-type RangeKey =
-  | '0-1'
-  | '1-2'
-  | '2-3'
-  | '3-4'
-  | '4-5'
-
-type FilterState = {
-  overallRanges: RangeKey[]
-  criterionRanges: Record<number, RangeKey[]>
-  styleIds: number[]
-  authors: string[]
-  languages: string[]
-  minPages: string
-  maxPages: string
-}
-
 type Props = {
   onBack: () => void
   onRateBook: () => void
   onOpenBook: (bookId: number) => void
 }
 
-const ratingRanges: {
-  key: RangeKey
+type Book = {
+  id: number
+  title: string
+  author: string
+  publication_date: string | null
+  pages: number
+  language: string
+  cover_url: string | null
+  genre_id: number | null
+  topic_id: number | null
+  subtopic_id: number | null
+  created_at: string
+}
+
+type Option = {
+  id: number
+  name: string
+  position?: number
+}
+
+type Tag = {
+  id: number
+  name: string
+}
+
+type Criterion = {
+  id: number
+  name: string
+}
+
+type Rating = {
+  id: number
+  book_id: number
+  comment: string | null
+  level: string | null
+}
+
+type Score = {
+  rating_id: number
+  criterion_id: number
+  score: number
+}
+
+type BookTag = {
+  book_id: number
+  tag_id: number
+}
+
+type AgeRange = {
+  id: number
+  code: string
   label: string
-  min: number
-  max: number
-}[] = [
+  position: number
+}
+
+type RatingAgeRange = {
+  rating_id: number
+  age_range_id: number
+}
+
+type BookStats = {
+  overallAverage: number | null
+  ratingCount: number
+  commentCount: number
+}
+
+const SCORE_RANGES = [
   {
     key: '0-1',
     label: '0–1',
@@ -112,31 +106,45 @@ const ratingRanges: {
   },
 ]
 
-function createEmptyFilters(): FilterState {
-  return {
-    overallRanges: [],
-    criterionRanges: {},
-    styleIds: [],
-    authors: [],
-    languages: [],
-    minPages: '',
-    maxPages: '',
-  }
-}
-
 export default function LibraryView({
   onBack,
   onRateBook,
   onOpenBook,
 }: Props) {
   const [books, setBooks] =
-    useState<BookWithStats[]>([])
+    useState<Book[]>([])
+
+  const [genres, setGenres] =
+    useState<Option[]>([])
+
+  const [topics, setTopics] =
+    useState<Option[]>([])
+
+  const [subtopics, setSubtopics] =
+    useState<Option[]>([])
+
+  const [tags, setTags] =
+    useState<Tag[]>([])
 
   const [criteria, setCriteria] =
     useState<Criterion[]>([])
 
-  const [styles, setStyles] =
-    useState<Style[]>([])
+  const [ratings, setRatings] =
+    useState<Rating[]>([])
+
+  const [scores, setScores] =
+    useState<Score[]>([])
+
+  const [bookTags, setBookTags] =
+    useState<BookTag[]>([])
+
+  const [ageRanges, setAgeRanges] =
+    useState<AgeRange[]>([])
+
+  const [
+    ratingAgeRanges,
+    setRatingAgeRanges,
+  ] = useState<RatingAgeRange[]>([])
 
   const [loading, setLoading] =
     useState(true)
@@ -144,397 +152,450 @@ export default function LibraryView({
   const [error, setError] =
     useState('')
 
-  const [
-    showRecommendations,
-    setShowRecommendations,
-  ] = useState(false)
+  const [searchText, setSearchText] =
+    useState('')
+
+  const [showFilters, setShowFilters] =
+    useState(false)
+
+  const [mode, setMode] =
+    useState<
+      'library' | 'most-read'
+    >('library')
+
+  // ============================================================
+  // FILTROS PENDIENTES
+  // ============================================================
 
   const [
-    showFilters,
-    setShowFilters,
-  ] = useState(false)
-
-  /*
-    pendingFilters:
-    lo que el usuario está tocando.
-
-    appliedFilters:
-    los filtros que realmente están
-    aplicados al grid.
-  */
+    pendingGenreId,
+    setPendingGenreId,
+  ] =
+    useState<number | null>(
+      null
+    )
 
   const [
-    pendingFilters,
-    setPendingFilters,
-  ] = useState<FilterState>(
-    createEmptyFilters()
-  )
+    pendingTopicId,
+    setPendingTopicId,
+  ] =
+    useState<number | null>(
+      null
+    )
 
   const [
-    appliedFilters,
-    setAppliedFilters,
-  ] = useState<FilterState>(
-    createEmptyFilters()
-  )
+    pendingSubtopicId,
+    setPendingSubtopicId,
+  ] =
+    useState<number | null>(
+      null
+    )
+
+  const [
+    pendingTagIds,
+    setPendingTagIds,
+  ] =
+    useState<number[]>([])
+
+  const [
+    pendingAgeRangeIds,
+    setPendingAgeRangeIds,
+  ] =
+    useState<number[]>([])
+
+  const [
+    pendingLanguages,
+    setPendingLanguages,
+  ] =
+    useState<string[]>([])
+
+  const [
+    pendingMinPages,
+    setPendingMinPages,
+  ] =
+    useState('')
+
+  const [
+    pendingMaxPages,
+    setPendingMaxPages,
+  ] =
+    useState('')
+
+  const [
+    pendingCriterionRanges,
+    setPendingCriterionRanges,
+  ] = useState<
+    Record<number, string[]>
+  >({})
+
+  // ============================================================
+  // FILTROS APLICADOS
+  // ============================================================
+
+  const [
+    genreId,
+    setGenreId,
+  ] =
+    useState<number | null>(
+      null
+    )
+
+  const [
+    topicId,
+    setTopicId,
+  ] =
+    useState<number | null>(
+      null
+    )
+
+  const [
+    subtopicId,
+    setSubtopicId,
+  ] =
+    useState<number | null>(
+      null
+    )
+
+  const [
+    selectedTagIds,
+    setSelectedTagIds,
+  ] =
+    useState<number[]>([])
+
+  const [
+    selectedAgeRangeIds,
+    setSelectedAgeRangeIds,
+  ] =
+    useState<number[]>([])
+
+  const [
+    selectedLanguages,
+    setSelectedLanguages,
+  ] =
+    useState<string[]>([])
+
+  const [
+    minPages,
+    setMinPages,
+  ] =
+    useState('')
+
+  const [
+    maxPages,
+    setMaxPages,
+  ] =
+    useState('')
+
+  const [
+    selectedCriterionRanges,
+    setSelectedCriterionRanges,
+  ] = useState<
+    Record<number, string[]>
+  >({})
 
   useEffect(() => {
     loadLibrary()
   }, [])
+
+  // ============================================================
+  // CARGAR DATOS
+  // ============================================================
 
   async function loadLibrary() {
     try {
       setLoading(true)
       setError('')
 
-      // =========================
-      // LIBROS
-      // =========================
+      const [
+        booksResult,
+        genresResult,
+        topicsResult,
+        subtopicsResult,
+        tagsResult,
+        criteriaResult,
+        ratingsResult,
+        bookTagsResult,
+        ageRangesResult,
+      ] = await Promise.all([
+        supabase
+          .from('books')
+          .select(`
+            id,
+            title,
+            author,
+            publication_date,
+            pages,
+            language,
+            cover_url,
+            genre_id,
+            topic_id,
+            subtopic_id,
+            created_at
+          `)
+          .order(
+            'created_at',
+            {
+              ascending: false,
+            }
+          ),
 
-      const {
-        data: booksData,
-        error: booksError,
-      } = await supabase
-        .from('books')
-        .select(`
-          id,
-          title,
-          author,
-          pages,
-          language,
-          cover_url,
-          created_at,
-          recommended
-        `)
-        .order(
-          'created_at',
-          {
-            ascending: false,
-          }
-        )
+        supabase
+          .from('genres')
+          .select(
+            'id, name, position'
+          )
+          .order('position'),
 
-      if (booksError) {
-        throw booksError
+        supabase
+          .from('topics')
+          .select(
+            'id, name, position'
+          )
+          .order('position'),
+
+        supabase
+          .from('subtopics')
+          .select(
+            'id, name, position'
+          )
+          .order('position'),
+
+        supabase
+          .from('tags')
+          .select(
+            'id, name'
+          )
+          .order('name'),
+
+        supabase
+          .from('criteria')
+          .select(
+            'id, name'
+          )
+          .eq(
+            'active',
+            true
+          )
+          .order(
+            'position',
+            {
+              ascending: true,
+            }
+          ),
+
+        supabase
+          .from('ratings')
+          .select(`
+            id,
+            book_id,
+            comment,
+            level
+          `),
+
+        supabase
+          .from('book_tags')
+          .select(`
+            book_id,
+            tag_id
+          `),
+
+        supabase
+          .from(
+            'recommendation_age_ranges'
+          )
+          .select(`
+            id,
+            code,
+            label,
+            position
+          `)
+          .order(
+            'position'
+          ),
+      ])
+
+      const results = [
+        booksResult,
+        genresResult,
+        topicsResult,
+        subtopicsResult,
+        tagsResult,
+        criteriaResult,
+        ratingsResult,
+        bookTagsResult,
+        ageRangesResult,
+      ]
+
+      const firstError =
+        results.find(
+          (result) =>
+            result.error
+        )?.error
+
+      if (firstError) {
+        throw firstError
       }
 
-      // =========================
-      // CRITERIOS
-      // =========================
-
-      const {
-        data: criteriaData,
-        error: criteriaError,
-      } = await supabase
-        .from('criteria')
-        .select(`
-          id,
-          name,
-          position
-        `)
-        .eq('active', true)
-        .order(
-          'position',
-          {
-            ascending: true,
-          }
-        )
-
-      if (criteriaError) {
-        throw criteriaError
-      }
-
-      // =========================
-      // ESTILOS
-      // =========================
-
-      const {
-        data: stylesData,
-        error: stylesError,
-      } = await supabase
-        .from('styles')
-        .select(`
-          id,
-          name
-        `)
-        .order(
-          'name',
-          {
-            ascending: true,
-          }
-        )
-
-      if (stylesError) {
-        throw stylesError
-      }
-
-      // =========================
-      // LIBROS - ESTILOS
-      // =========================
-
-      const {
-        data: bookStylesData,
-        error: bookStylesError,
-      } = await supabase
-        .from('book_styles')
-        .select(`
-          book_id,
-          style_id
-        `)
-
-      if (bookStylesError) {
-        throw bookStylesError
-      }
-
-      // =========================
-      // VALORACIONES
-      // =========================
-
-      const {
-        data: ratingsData,
-        error: ratingsError,
-      } = await supabase
-        .from('ratings')
-        .select(`
-          id,
-          book_id
-        `)
-
-      if (ratingsError) {
-        throw ratingsError
-      }
-
-      // =========================
-      // PUNTUACIONES
-      // =========================
-
-      const {
-        data: scoresData,
-        error: scoresError,
-      } = await supabase
-        .from('rating_scores')
-        .select(`
-          rating_id,
-          criterion_id,
-          score
-        `)
-
-      if (scoresError) {
-        throw scoresError
-      }
-
-      const loadedCriteria =
-        (criteriaData ?? []) as Criterion[]
-
-      const loadedStyles =
-        (stylesData ?? []) as Style[]
-
-      const loadedBookStyles =
-        (bookStylesData ??
-          []) as BookStyle[]
+      const loadedBooks =
+        (
+          booksResult.data ??
+          []
+        ) as Book[]
 
       const loadedRatings =
-        (ratingsData ??
-          []) as Rating[]
-
-      const loadedScores =
         (
-          (scoresData ??
-            []) as RatingScore[]
-        ).map(
-          (item) => ({
-            ...item,
-            score: Number(
-              item.score
-            ),
-          })
-        )
-
-      setCriteria(
-        loadedCriteria
-      )
-
-      setStyles(
-        loadedStyles
-      )
-
-      // =========================
-      // ESTADÍSTICAS
-      // =========================
-
-      const booksWithStats =
-        (
-          (booksData ??
-            []) as Book[]
-        ).map(
-          (book) => {
-            const bookRatings =
-              loadedRatings.filter(
-                (rating) =>
-                  rating.book_id ===
-                  book.id
-              )
-
-            /*
-              Solo cuentan como
-              valoraciones aquellas
-              aportaciones que tengan
-              rating_scores.
-            */
-
-            const validRatings =
-              bookRatings.filter(
-                (rating) =>
-                  loadedScores.some(
-                    (score) =>
-                      score.rating_id ===
-                      rating.id
-                  )
-              )
-
-            const individualAverages =
-              validRatings.map(
-                (rating) => {
-                  const ratingScores =
-                    loadedScores.filter(
-                      (score) =>
-                        score.rating_id ===
-                        rating.id
-                    )
-
-                  return (
-                    ratingScores.reduce(
-                      (
-                        sum,
-                        score
-                      ) =>
-                        sum +
-                        score.score,
-                      0
-                    ) /
-                    ratingScores.length
-                  )
-                }
-              )
-
-            const average =
-              individualAverages.length >
-              0
-                ? individualAverages.reduce(
-                    (
-                      sum,
-                      value
-                    ) =>
-                      sum +
-                      value,
-                    0
-                  ) /
-                  individualAverages.length
-                : null
-
-            // MEDIA DE CADA CRITERIO
-
-            const criterionAverages =
-              loadedCriteria
-                .map(
-                  (criterion) => {
-                    const criterionScores =
-                      validRatings
-                        .map(
-                          (rating) =>
-                            loadedScores.find(
-                              (
-                                score
-                              ) =>
-                                score.rating_id ===
-                                  rating.id &&
-                                score.criterion_id ===
-                                  criterion.id
-                            )
-                        )
-                        .filter(
-                          (
-                            score
-                          ): score is RatingScore =>
-                            Boolean(
-                              score
-                            )
-                        )
-
-                    if (
-                      criterionScores.length ===
-                      0
-                    ) {
-                      return null
-                    }
-
-                    const criterionAverage =
-                      criterionScores.reduce(
-                        (
-                          sum,
-                          item
-                        ) =>
-                          sum +
-                          item.score,
-                        0
-                      ) /
-                      criterionScores.length
-
-                    return {
-                      criterionId:
-                        criterion.id,
-                      average:
-                        criterionAverage,
-                    }
-                  }
-                )
-                .filter(
-                  (
-                    item
-                  ): item is CriterionAverage =>
-                    item !== null
-                )
-
-            // ESTILOS
-
-            const styleIds =
-              loadedBookStyles
-                .filter(
-                  (relation) =>
-                    relation.book_id ===
-                    book.id
-                )
-                .map(
-                  (relation) =>
-                    relation.style_id
-                )
-
-            return {
-              ...book,
-              average,
-              ratingCount:
-                validRatings.length,
-              styleIds,
-              criterionAverages,
-            }
-          }
-        )
+          ratingsResult.data ??
+          []
+        ) as Rating[]
 
       setBooks(
-        booksWithStats
+        loadedBooks
       )
 
-      if (
-        booksWithStats.some(
-          (book) =>
-            book.recommended
+      setGenres(
+        genresResult.data ??
+          []
+      )
+
+      setTopics(
+        topicsResult.data ??
+          []
+      )
+
+      setSubtopics(
+        subtopicsResult.data ??
+          []
+      )
+
+      setTags(
+        tagsResult.data ??
+          []
+      )
+
+      setCriteria(
+        criteriaResult.data ??
+          []
+      )
+
+      setRatings(
+        loadedRatings
+      )
+
+      setBookTags(
+        bookTagsResult.data ??
+          []
+      )
+
+      setAgeRanges(
+        ageRangesResult.data ??
+          []
+      )
+
+      // Narratiba preseleccionada
+      const narratiba =
+        genresResult.data?.find(
+          (genre) =>
+            genre.name ===
+            'Narratiba'
         )
+
+      if (narratiba) {
+        setPendingGenreId(
+          narratiba.id
+        )
+
+        setGenreId(
+          narratiba.id
+        )
+      }
+
+      const ratingIds =
+        loadedRatings.map(
+          (rating) =>
+            rating.id
+        )
+
+      if (
+        ratingIds.length >
+        0
       ) {
-        setShowRecommendations(
-          true
+        const [
+          scoresResult,
+          ratingAgesResult,
+        ] =
+          await Promise.all([
+            supabase
+              .from(
+                'rating_scores'
+              )
+              .select(`
+                rating_id,
+                criterion_id,
+                score
+              `)
+              .in(
+                'rating_id',
+                ratingIds
+              ),
+
+            supabase
+              .from(
+                'rating_age_ranges'
+              )
+              .select(`
+                rating_id,
+                age_range_id
+              `)
+              .in(
+                'rating_id',
+                ratingIds
+              ),
+          ])
+
+        if (
+          scoresResult.error
+        ) {
+          throw scoresResult.error
+        }
+
+        if (
+          ratingAgesResult.error
+        ) {
+          throw ratingAgesResult.error
+        }
+
+        setScores(
+          (
+            scoresResult.data ??
+            []
+          ).map(
+            (item) => ({
+              rating_id:
+                item.rating_id,
+
+              criterion_id:
+                item.criterion_id,
+
+              score:
+                Number(
+                  item.score
+                ),
+            })
+          )
+        )
+
+        setRatingAgeRanges(
+          ratingAgesResult.data ??
+            []
+        )
+      } else {
+        setScores([])
+        setRatingAgeRanges(
+          []
         )
       }
     } catch (err) {
       console.error(
-        'Error cargando biblioteca:',
         err
       )
 
@@ -546,194 +607,533 @@ export default function LibraryView({
     }
   }
 
-  // =========================
-  // OPCIONES DE FILTRO
-  // =========================
+  // ============================================================
+  // CRITERIOS PARA LA NOTA GENERAL
+  // ============================================================
 
-  const authors =
+  const satisfactionCriterion =
+    useMemo(
+      () =>
+        criteria.find(
+          (criterion) =>
+            criterion.name ===
+            'Asebetetze maila'
+        ),
+      [criteria]
+    )
+
+  const recommendationCriterion =
+    useMemo(
+      () =>
+        criteria.find(
+          (criterion) =>
+            criterion.name ===
+            'Gomendatuko zenuke?'
+        ),
+      [criteria]
+    )
+
+  // ============================================================
+  // ESTADÍSTICAS GENERALES POR LIBRO
+  // ============================================================
+
+  const statsByBook =
     useMemo(() => {
-      return Array.from(
-        new Set(
-          books.map(
-            (book) =>
-              book.author
+      const stats =
+        new Map<
+          number,
+          BookStats
+        >()
+
+      books.forEach(
+        (book) => {
+          const bookRatings =
+            ratings.filter(
+              (rating) =>
+                rating.book_id ===
+                book.id
+            )
+
+          const individualAverages:
+            number[] = []
+
+          bookRatings.forEach(
+            (rating) => {
+              if (
+                !satisfactionCriterion ||
+                !recommendationCriterion
+              ) {
+                return
+              }
+
+              const satisfactionScore =
+                scores.find(
+                  (score) =>
+                    score.rating_id ===
+                      rating.id &&
+                    score.criterion_id ===
+                      satisfactionCriterion.id
+                )
+
+              const recommendationScore =
+                scores.find(
+                  (score) =>
+                    score.rating_id ===
+                      rating.id &&
+                    score.criterion_id ===
+                      recommendationCriterion.id
+                )
+
+              if (
+                satisfactionScore &&
+                recommendationScore
+              ) {
+                individualAverages.push(
+                  (
+                    satisfactionScore.score +
+                    recommendationScore.score
+                  ) / 2
+                )
+              }
+            }
           )
-        )
-      ).sort((a, b) =>
-        a.localeCompare(
-          b,
-          'eu'
-        )
-      )
-    }, [books])
 
-  const recommendedBooks =
+          const overallAverage =
+            individualAverages.length >
+            0
+              ? individualAverages.reduce(
+                  (
+                    sum,
+                    value
+                  ) =>
+                    sum +
+                    value,
+                  0
+                ) /
+                individualAverages.length
+              : null
+
+          const commentCount =
+            bookRatings.filter(
+              (rating) =>
+                typeof rating.comment ===
+                  'string' &&
+                rating.comment
+                  .trim()
+                  .length >
+                  0
+            ).length
+
+          stats.set(
+            book.id,
+            {
+              overallAverage,
+
+              ratingCount:
+                individualAverages.length,
+
+              commentCount,
+            }
+          )
+        }
+      )
+
+      return stats
+    }, [
+      books,
+      ratings,
+      scores,
+      satisfactionCriterion,
+      recommendationCriterion,
+    ])
+
+  // ============================================================
+  // MEDIA DE CADA IRIZPIDE POR LIBRO
+  // ============================================================
+
+  const criterionAveragesByBook =
     useMemo(() => {
-      return books.filter(
-        (book) =>
-          book.recommended
-      )
-    }, [books])
+      const result =
+        new Map<
+          number,
+          Record<
+            number,
+            number | null
+          >
+        >()
 
-  // =========================
-  // RESULTADOS FILTRADOS
-  // =========================
+      books.forEach(
+        (book) => {
+          const bookRatingIds =
+            new Set(
+              ratings
+                .filter(
+                  (rating) =>
+                    rating.book_id ===
+                    book.id
+                )
+                .map(
+                  (rating) =>
+                    rating.id
+                )
+            )
+
+          const averages:
+            Record<
+              number,
+              number | null
+            > = {}
+
+          criteria.forEach(
+            (criterion) => {
+              const criterionScores =
+                scores.filter(
+                  (score) =>
+                    score.criterion_id ===
+                      criterion.id &&
+                    bookRatingIds.has(
+                      score.rating_id
+                    )
+                )
+
+              if (
+                criterionScores.length ===
+                0
+              ) {
+                averages[
+                  criterion.id
+                ] = null
+              } else {
+                averages[
+                  criterion.id
+                ] =
+                  criterionScores.reduce(
+                    (
+                      sum,
+                      score
+                    ) =>
+                      sum +
+                      score.score,
+                    0
+                  ) /
+                  criterionScores.length
+              }
+            }
+          )
+
+          result.set(
+            book.id,
+            averages
+          )
+        }
+      )
+
+      return result
+    }, [
+      books,
+      ratings,
+      scores,
+      criteria,
+    ])
+
+  // ============================================================
+  // ETIQUETAS POR LIBRO
+  // ============================================================
+
+  function getBookTags(
+    bookId: number
+  ) {
+    const ids =
+      bookTags
+        .filter(
+          (relation) =>
+            relation.book_id ===
+            bookId
+        )
+        .map(
+          (relation) =>
+            relation.tag_id
+        )
+
+    return tags.filter(
+      (tag) =>
+        ids.includes(
+          tag.id
+        )
+    )
+  }
+
+  function getTopicName(
+    topicIdValue:
+      | number
+      | null
+  ) {
+    if (!topicIdValue) {
+      return null
+    }
+
+    return (
+      topics.find(
+        (topic) =>
+          topic.id ===
+          topicIdValue
+      )?.name ?? null
+    )
+  }
+
+  // ============================================================
+  // FILTRADO
+  // ============================================================
 
   const filteredBooks =
     useMemo(() => {
+      const normalizedSearch =
+        normalizeText(
+          searchText
+        )
+
       return books.filter(
         (book) => {
-          // NOTA GENERAL
+          // ==================================
+          // BUSCADOR
+          // ==================================
 
           if (
-            appliedFilters
-              .overallRanges
-              .length > 0
+            normalizedSearch
           ) {
-            if (
-              book.average ===
-              null
-            ) {
-              return false
-            }
+            const haystack =
+              normalizeText(
+                `${book.title} ${book.author}`
+              )
 
             if (
-              !valueMatchesRanges(
-                book.average,
-                appliedFilters.overallRanges
+              !haystack.includes(
+                normalizedSearch
               )
             ) {
               return false
             }
           }
 
-          // CRITERIOS
-
-          for (
-            const [
-              criterionIdText,
-              ranges,
-            ] of Object.entries(
-              appliedFilters
-                .criterionRanges
-            )
-          ) {
-            if (
-              ranges.length === 0
-            ) {
-              continue
-            }
-
-            const criterionId =
-              Number(
-                criterionIdText
-              )
-
-            const criterionAverage =
-              book.criterionAverages.find(
-                (item) =>
-                  item.criterionId ===
-                  criterionId
-              )
-
-            if (
-              !criterionAverage
-            ) {
-              return false
-            }
-
-            if (
-              !valueMatchesRanges(
-                criterionAverage.average,
-                ranges
-              )
-            ) {
-              return false
-            }
-          }
-
-          // ESTILOS
-          // OR:
-          // basta con que tenga uno
-          // de los seleccionados.
+          // ==================================
+          // GENEROA
+          // ==================================
 
           if (
-            appliedFilters
-              .styleIds.length >
+            genreId &&
+            book.genre_id !==
+              genreId
+          ) {
+            return false
+          }
+
+          // ==================================
+          // GAIA
+          // ==================================
+
+          if (
+            topicId &&
+            book.topic_id !==
+              topicId
+          ) {
+            return false
+          }
+
+          // ==================================
+          // AZPIGAIA
+          // ==================================
+
+          if (
+            subtopicId &&
+            book.subtopic_id !==
+              subtopicId
+          ) {
+            return false
+          }
+
+          // ==================================
+          // ETIKETAK
+          // OR dentro de las etiquetas
+          // ==================================
+
+          if (
+            selectedTagIds.length >
             0
           ) {
-            const hasStyle =
-              appliedFilters.styleIds.some(
-                (styleId) =>
-                  book.styleIds.includes(
-                    styleId
+            const bookTagIds =
+              bookTags
+                .filter(
+                  (relation) =>
+                    relation.book_id ===
+                    book.id
+                )
+                .map(
+                  (relation) =>
+                    relation.tag_id
+                )
+
+            const matchesAnyTag =
+              selectedTagIds.some(
+                (tagId) =>
+                  bookTagIds.includes(
+                    tagId
                   )
               )
 
-            if (!hasStyle) {
+            if (
+              !matchesAnyTag
+            ) {
               return false
             }
           }
 
-          // AUTORES
+          // ==================================
+          // HIZKUNTZA
+          // ==================================
 
           if (
-            appliedFilters
-              .authors.length >
+            selectedLanguages.length >
+              0 &&
+            !selectedLanguages.includes(
+              book.language
+            )
+          ) {
+            return false
+          }
+
+          // ==================================
+          // ORRIALDEAK
+          // ==================================
+
+          if (
+            minPages &&
+            book.pages <
+              Number(
+                minPages
+              )
+          ) {
+            return false
+          }
+
+          if (
+            maxPages &&
+            book.pages >
+              Number(
+                maxPages
+              )
+          ) {
+            return false
+          }
+
+          // ==================================
+          // IRIZPIDEAK
+          //
+          // Entre criterios = AND
+          // Dentro de un criterio = OR
+          // ==================================
+
+          const criterionFilters =
+            Object.entries(
+              selectedCriterionRanges
+            ).filter(
+              (
+                [, ranges]
+              ) =>
+                ranges.length >
+                0
+            )
+
+          if (
+            criterionFilters.length >
             0
           ) {
-            if (
-              !appliedFilters.authors.includes(
-                book.author
+            const bookAverages =
+              criterionAveragesByBook.get(
+                book.id
               )
+
+            if (
+              !bookAverages
+            ) {
+              return false
+            }
+
+            const matchesAllCriteria =
+              criterionFilters.every(
+                ([
+                  criterionIdText,
+                  selectedRanges,
+                ]) => {
+                  const criterionId =
+                    Number(
+                      criterionIdText
+                    )
+
+                  const average =
+                    bookAverages[
+                      criterionId
+                    ]
+
+                  if (
+                    average ===
+                      null ||
+                    average ===
+                      undefined
+                  ) {
+                    return false
+                  }
+
+                  return selectedRanges.some(
+                    (rangeKey) =>
+                      scoreMatchesRange(
+                        average,
+                        rangeKey
+                      )
+                  )
+                }
+              )
+
+            if (
+              !matchesAllCriteria
             ) {
               return false
             }
           }
 
-          // IDIOMAS
+          // ==================================
+          // GOMENDATUTAKO ADINA
+          // OR entre rangos seleccionados
+          // ==================================
 
           if (
-            appliedFilters
-              .languages.length >
+            selectedAgeRangeIds.length >
             0
           ) {
-            if (
-              !appliedFilters.languages.includes(
-                book.language
+            const bookRatingIds =
+              ratings
+                .filter(
+                  (rating) =>
+                    rating.book_id ===
+                    book.id
+                )
+                .map(
+                  (rating) =>
+                    rating.id
+                )
+
+            const matchesAge =
+              ratingAgeRanges.some(
+                (relation) =>
+                  bookRatingIds.includes(
+                    relation.rating_id
+                  ) &&
+                  selectedAgeRangeIds.includes(
+                    relation.age_range_id
+                  )
               )
-            ) {
-              return false
-            }
-          }
 
-          // PÁGINAS MÍNIMAS
-
-          if (
-            appliedFilters
-              .minPages !== ''
-          ) {
             if (
-              book.pages <
-              Number(
-                appliedFilters.minPages
-              )
-            ) {
-              return false
-            }
-          }
-
-          // PÁGINAS MÁXIMAS
-
-          if (
-            appliedFilters
-              .maxPages !== ''
-          ) {
-            if (
-              book.pages >
-              Number(
-                appliedFilters.maxPages
-              )
+              !matchesAge
             ) {
               return false
             }
@@ -744,186 +1144,394 @@ export default function LibraryView({
       )
     }, [
       books,
-      appliedFilters,
+      searchText,
+      genreId,
+      topicId,
+      subtopicId,
+      selectedTagIds,
+      selectedLanguages,
+      minPages,
+      maxPages,
+      selectedCriterionRanges,
+      selectedAgeRangeIds,
+      bookTags,
+      ratings,
+      ratingAgeRanges,
+      criterionAveragesByBook,
     ])
 
-  // =========================
-  // CAMBIAR FILTROS
-  // =========================
+  // ============================================================
+  // IRAKURRIENAK
+  // ============================================================
 
-  function toggleOverallRange(
-    range: RangeKey
+  const mostReadByAge =
+    useMemo(() => {
+      return ageRanges.map(
+        (ageRange) => {
+          const ranking =
+            books
+              .map(
+                (book) => {
+                  const bookRatings =
+                    ratings.filter(
+                      (rating) =>
+                        rating.book_id ===
+                        book.id
+                    )
+
+                  const ratingIds =
+                    new Set(
+                      bookRatings.map(
+                        (rating) =>
+                          rating.id
+                      )
+                    )
+
+                  const count =
+                    ratingAgeRanges.filter(
+                      (relation) =>
+                        relation.age_range_id ===
+                          ageRange.id &&
+                        ratingIds.has(
+                          relation.rating_id
+                        )
+                    ).length
+
+                  return {
+                    book,
+                    count,
+                  }
+                }
+              )
+              .filter(
+                (item) =>
+                  item.count >
+                  0
+              )
+              .sort(
+                (
+                  a,
+                  b
+                ) =>
+                  b.count -
+                    a.count ||
+                  a.book.title.localeCompare(
+                    b.book.title,
+                    'eu'
+                  )
+              )
+
+          return {
+            ageRange,
+            books: ranking,
+          }
+        }
+      )
+    }, [
+      books,
+      ratings,
+      ratingAgeRanges,
+      ageRanges,
+    ])
+
+  // ============================================================
+  // FILTROS · FUNCIONES
+  // ============================================================
+
+  function togglePendingTag(
+    tagId: number
   ) {
-    setPendingFilters(
-      (current) => ({
-        ...current,
-
-        overallRanges:
-          toggleValue(
-            current.overallRanges,
-            range
-          ),
-      })
+    setPendingTagIds(
+      (current) =>
+        current.includes(
+          tagId
+        )
+          ? current.filter(
+              (id) =>
+                id !==
+                tagId
+            )
+          : [
+              ...current,
+              tagId,
+            ]
     )
   }
 
-  function toggleCriterionRange(
-    criterionId: number,
-    range: RangeKey
+  function togglePendingAge(
+    ageId: number
   ) {
-    setPendingFilters(
+    setPendingAgeRangeIds(
+      (current) =>
+        current.includes(
+          ageId
+        )
+          ? current.filter(
+              (id) =>
+                id !==
+                ageId
+            )
+          : [
+              ...current,
+              ageId,
+            ]
+    )
+  }
+
+  function togglePendingLanguage(
+    language: string
+  ) {
+    setPendingLanguages(
+      (current) =>
+        current.includes(
+          language
+        )
+          ? current.filter(
+              (value) =>
+                value !==
+                language
+            )
+          : [
+              ...current,
+              language,
+            ]
+    )
+  }
+
+  function togglePendingCriterionRange(
+    criterionId: number,
+    rangeKey: string
+  ) {
+    setPendingCriterionRanges(
       (current) => {
         const currentRanges =
-          current
-            .criterionRanges[
+          current[
             criterionId
           ] ?? []
+
+        const newRanges =
+          currentRanges.includes(
+            rangeKey
+          )
+            ? currentRanges.filter(
+                (value) =>
+                  value !==
+                  rangeKey
+              )
+            : [
+                ...currentRanges,
+                rangeKey,
+              ]
 
         return {
           ...current,
 
-          criterionRanges: {
-            ...current
-              .criterionRanges,
-
-            [criterionId]:
-              toggleValue(
-                currentRanges,
-                range
-              ),
-          },
+          [criterionId]:
+            newRanges,
         }
       }
     )
   }
 
-  function toggleStyle(
-    styleId: number
-  ) {
-    setPendingFilters(
-      (current) => ({
-        ...current,
-
-        styleIds:
-          toggleValue(
-            current.styleIds,
-            styleId
-          ),
-      })
-    )
-  }
-
-  function toggleAuthor(
-    author: string
-  ) {
-    setPendingFilters(
-      (current) => ({
-        ...current,
-
-        authors:
-          toggleValue(
-            current.authors,
-            author
-          ),
-      })
-    )
-  }
-
-  function toggleLanguage(
-    language: string
-  ) {
-    setPendingFilters(
-      (current) => ({
-        ...current,
-
-        languages:
-          toggleValue(
-            current.languages,
-            language
-          ),
-      })
-    )
-  }
-
   function applyFilters() {
-    setAppliedFilters({
-      overallRanges: [
-        ...pendingFilters
-          .overallRanges,
-      ],
+    setGenreId(
+      pendingGenreId
+    )
 
-      criterionRanges:
-        Object.fromEntries(
-          Object.entries(
-            pendingFilters
-              .criterionRanges
-          ).map(
-            ([
-              key,
-              ranges,
-            ]) => [
-              key,
-              [...ranges],
-            ]
-          )
-        ),
+    setTopicId(
+      pendingTopicId
+    )
 
-      styleIds: [
-        ...pendingFilters
-          .styleIds,
-      ],
+    setSubtopicId(
+      pendingSubtopicId
+    )
 
-      authors: [
-        ...pendingFilters
-          .authors,
-      ],
+    setSelectedTagIds(
+      pendingTagIds
+    )
 
-      languages: [
-        ...pendingFilters
-          .languages,
-      ],
+    setSelectedAgeRangeIds(
+      pendingAgeRangeIds
+    )
 
-      minPages:
-        pendingFilters
-          .minPages,
+    setSelectedLanguages(
+      pendingLanguages
+    )
 
-      maxPages:
-        pendingFilters
-          .maxPages,
-    })
+    setMinPages(
+      pendingMinPages
+    )
 
-    /*
-      En móvil es agradable que
-      al buscar vuelva directamente
-      a los resultados.
-    */
+    setMaxPages(
+      pendingMaxPages
+    )
 
-    setShowFilters(false)
+    setSelectedCriterionRanges(
+      pendingCriterionRanges
+    )
   }
 
   function clearFilters() {
-    const empty =
-      createEmptyFilters()
+    const narratiba =
+      genres.find(
+        (genre) =>
+          genre.name ===
+          'Narratiba'
+      )
 
-    setPendingFilters(
-      empty
+    const defaultGenre =
+      narratiba?.id ??
+      null
+
+    setPendingGenreId(
+      defaultGenre
     )
 
-    setAppliedFilters(
-      createEmptyFilters()
+    setGenreId(
+      defaultGenre
+    )
+
+    setPendingTopicId(
+      null
+    )
+
+    setTopicId(
+      null
+    )
+
+    setPendingSubtopicId(
+      null
+    )
+
+    setSubtopicId(
+      null
+    )
+
+    setPendingTagIds(
+      []
+    )
+
+    setSelectedTagIds(
+      []
+    )
+
+    setPendingAgeRangeIds(
+      []
+    )
+
+    setSelectedAgeRangeIds(
+      []
+    )
+
+    setPendingLanguages(
+      []
+    )
+
+    setSelectedLanguages(
+      []
+    )
+
+    setPendingMinPages(
+      ''
+    )
+
+    setMinPages(
+      ''
+    )
+
+    setPendingMaxPages(
+      ''
+    )
+
+    setMaxPages(
+      ''
+    )
+
+    setPendingCriterionRanges(
+      {}
+    )
+
+    setSelectedCriterionRanges(
+      {}
     )
   }
 
-  const activeFiltersCount =
-    countActiveFilters(
-      appliedFilters
+  // ============================================================
+  // CONTADOR DE FILTROS ACTIVOS
+  // ============================================================
+
+  const hasCriterionFilters =
+    Object.values(
+      selectedCriterionRanges
+    ).some(
+      (ranges) =>
+        ranges.length >
+        0
     )
 
-  return (
-    <section className="page">
-      {/* CABECERA */}
+  const activeFilterCount =
+    [
+      genreId,
+      topicId,
+      subtopicId,
 
-      <div className="library-header">
+      selectedTagIds.length >
+        0,
+
+      selectedAgeRangeIds.length >
+        0,
+
+      selectedLanguages.length >
+        0,
+
+      minPages,
+
+      maxPages,
+
+      hasCriterionFilters,
+    ].filter(
+      Boolean
+    ).length
+
+  // ============================================================
+  // CARGANDO
+  // ============================================================
+
+  if (loading) {
+    return (
+      <section className="page">
+        <p className="placeholder">
+          Liburutegia
+          kargatzen...
+        </p>
+      </section>
+    )
+  }
+
+  if (error) {
+    return (
+      <section className="page">
+        <button
+          className="back-button"
+          onClick={onBack}
+        >
+          ← Itzuli
+        </button>
+
+        <div className="empty-library">
+          {error}
+        </div>
+      </section>
+    )
+  }
+
+  // ============================================================
+  // RENDER
+  // ============================================================
+
+  return (
+    <section className="page library-page">
+      <div className="library-topbar">
         <button
           className="back-button"
           onClick={onBack}
@@ -932,850 +1540,1063 @@ export default function LibraryView({
         </button>
 
         <button
-          className="secondary-button"
+          className="primary-button"
           onClick={
             onRateBook
           }
         >
-          Liburu bat baloratu
+          Liburu bat
+          baloratu
         </button>
       </div>
 
-      <div className="small-logo">
-        LIBURUBILA
-      </div>
+      <header className="library-header">
+        <div className="small-logo">
+          LIBURUBILA
+        </div>
 
-      <h1 className="section-title">
-        Zer irakur dezaket?
-      </h1>
+        <h1>
+          Zer irakur dezaket?
+        </h1>
 
-      {/* ACCIONES */}
+        <p>
+          Arakatu eta erabaki
+          zer irakurri nahi
+          duzun.
+        </p>
+      </header>
 
-      <div className="library-actions">
+      {/* ======================================================
+          LIBURUTEGIA / IRAKURRIENAK
+          ====================================================== */}
+
+      <div className="library-mode-switch">
         <button
+          type="button"
           className={
-            showFilters
-              ? 'filter-toggle-button active'
-              : 'filter-toggle-button'
+            mode ===
+            'library'
+              ? 'selected'
+              : ''
           }
           onClick={() =>
-            setShowFilters(
-              (current) =>
-                !current
+            setMode(
+              'library'
             )
           }
         >
-          ⚙ Iragazkiak
-
-          {activeFiltersCount >
-            0 && (
-            <span>
-              {
-                activeFiltersCount
-              }
-            </span>
-          )}
+          Liburutegia
         </button>
 
-        {recommendedBooks.length >
-          0 && (
-          <button
-            className="recommended-books-button"
-            onClick={() =>
-              setShowRecommendations(
-                true
-              )
-            }
-          >
-            ★ Gomendatutakoak
-          </button>
-        )}
+        <button
+          type="button"
+          className={
+            mode ===
+            'most-read'
+              ? 'selected'
+              : ''
+          }
+          onClick={() =>
+            setMode(
+              'most-read'
+            )
+          }
+        >
+          Irakurrienak
+        </button>
       </div>
 
-      {/* FILTROS */}
+      {mode ===
+      'most-read' ? (
+        <MostReadView
+          sections={
+            mostReadByAge
+          }
+          onOpenBook={
+            onOpenBook
+          }
+        />
+      ) : (
+        <>
+          {/* ==================================================
+              BUSCADOR
+              ================================================== */}
 
-      {showFilters && (
-        <section className="filters-panel">
-          <div className="filters-panel-heading">
-            <div>
-              <h2>
-                Iragazkiak
-              </h2>
-
-              <p>
-                Aukeratu nahi dituzun
-                baldintzak eta sakatu
-                Bilatu.
-              </p>
-            </div>
+          <div className="library-search-row">
+            <input
+              type="search"
+              value={
+                searchText
+              }
+              onChange={(
+                e
+              ) =>
+                setSearchText(
+                  e.target
+                    .value
+                )
+              }
+              placeholder="Bilatu izenburuaren edo egilearen arabera..."
+            />
 
             <button
-              className="filters-clear-button"
-              onClick={
-                clearFilters
+              type="button"
+              className="filters-toggle-button"
+              onClick={() =>
+                setShowFilters(
+                  (
+                    current
+                  ) =>
+                    !current
+                )
               }
             >
-              Garbitu
+              ⚙ Iragazkiak
+
+              {activeFilterCount >
+                0 && (
+                <span>
+                  {
+                    activeFilterCount
+                  }
+                </span>
+              )}
             </button>
           </div>
 
-          {/* NOTA GENERAL */}
+          {/* ==================================================
+              FILTROS
+              ================================================== */}
 
-          <FilterSection
-            title="Nota orokorra"
-          >
-            <RatingRangeSelector
-              selected={
-                pendingFilters
-                  .overallRanges
-              }
-              onToggle={
-                toggleOverallRange
-              }
-            />
-          </FilterSection>
+          {showFilters && (
+            <section className="filters-panel">
+              {/* ======================
+                  GENEROA
+                  ====================== */}
 
-          {/* CRITERIOS */}
+              <FilterSingleSelect
+                title="Generoa"
+                options={
+                  genres
+                }
+                selectedId={
+                  pendingGenreId
+                }
+                onSelect={
+                  setPendingGenreId
+                }
+              />
 
-          <FilterSection
-            title="Irizpideak"
-          >
-            <div className="criteria-filter-list">
-              {criteria.map(
-                (criterion) => (
-                  <div
-                    key={
-                      criterion.id
+              {/* ======================
+                  GAIA
+                  ====================== */}
+
+              <FilterSingleSelect
+                title="Gaia"
+                options={
+                  topics
+                }
+                selectedId={
+                  pendingTopicId
+                }
+                onSelect={
+                  setPendingTopicId
+                }
+                allowClear
+              />
+
+              {/* ======================
+                  AZPIGAIA
+                  ====================== */}
+
+              <FilterSingleSelect
+                title="Azpigaia"
+                options={
+                  subtopics
+                }
+                selectedId={
+                  pendingSubtopicId
+                }
+                onSelect={
+                  setPendingSubtopicId
+                }
+                allowClear
+              />
+
+              {/* ======================
+                  ETIKETAK
+                  ====================== */}
+
+              <div className="filter-group">
+                <h3>
+                  Etiketak
+                </h3>
+
+                <p>
+                  Nahi dituzun
+                  guztiak aukeratu.
+                  Liburuak
+                  aukeratutako
+                  etiketetako bat
+                  izatea nahikoa da.
+                </p>
+
+                <div className="filter-chip-list">
+                  {tags.map(
+                    (tag) => (
+                      <button
+                        key={
+                          tag.id
+                        }
+                        type="button"
+                        className={
+                          pendingTagIds.includes(
+                            tag.id
+                          )
+                            ? 'filter-chip selected'
+                            : 'filter-chip'
+                        }
+                        onClick={() =>
+                          togglePendingTag(
+                            tag.id
+                          )
+                        }
+                      >
+                        #
+                        {
+                          tag.name
+                        }
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+
+              {/* ======================
+                  GOMENDATUTAKO ADINA
+                  ====================== */}
+
+              <div className="filter-group">
+                <h3>
+                  Gomendatutako
+                  adina
+                </h3>
+
+                <div className="filter-chip-list">
+                  {ageRanges.map(
+                    (
+                      ageRange
+                    ) => (
+                      <button
+                        key={
+                          ageRange.id
+                        }
+                        type="button"
+                        className={
+                          pendingAgeRangeIds.includes(
+                            ageRange.id
+                          )
+                            ? 'filter-chip selected'
+                            : 'filter-chip'
+                        }
+                        onClick={() =>
+                          togglePendingAge(
+                            ageRange.id
+                          )
+                        }
+                      >
+                        {
+                          ageRange.label
+                        }
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+
+              {/* ======================
+                  IRIZPIDEAK
+                  ====================== */}
+
+              <div className="filter-group">
+                <h3>
+                  Irizpideak
+                </h3>
+
+                <p>
+                  Irizpide
+                  bakoitzean nahi
+                  dituzun tarteak
+                  aukeratu.
+                  Aukeratutako
+                  irizpide guztiak
+                  bete behar ditu
+                  liburuak.
+                </p>
+
+                <div className="criteria-filter-list">
+                  {criteria.map(
+                    (
+                      criterion
+                    ) => {
+                      const selectedRanges =
+                        pendingCriterionRanges[
+                          criterion
+                            .id
+                        ] ??
+                        []
+
+                      return (
+                        <div
+                          key={
+                            criterion.id
+                          }
+                          className="criterion-filter-block"
+                        >
+                          <strong>
+                            {
+                              criterion.name
+                            }
+                          </strong>
+
+                          <div className="filter-chip-list">
+                            {SCORE_RANGES.map(
+                              (
+                                range
+                              ) => (
+                                <button
+                                  key={
+                                    range.key
+                                  }
+                                  type="button"
+                                  className={
+                                    selectedRanges.includes(
+                                      range.key
+                                    )
+                                      ? 'filter-chip selected'
+                                      : 'filter-chip'
+                                  }
+                                  onClick={() =>
+                                    togglePendingCriterionRange(
+                                      criterion.id,
+                                      range.key
+                                    )
+                                  }
+                                >
+                                  {
+                                    range.label
+                                  }
+                                </button>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )
                     }
-                    className="criterion-filter"
-                  >
+                  )}
+                </div>
+              </div>
+
+              {/* ======================
+                  HIZKUNTZA
+                  ====================== */}
+
+              <div className="filter-group">
+                <h3>
+                  Hizkuntza
+                </h3>
+
+                <div className="filter-chip-list">
+                  {[
+                    [
+                      'euskara',
+                      'Euskara',
+                    ],
+                    [
+                      'gaztelera',
+                      'Gaztelera',
+                    ],
+                    [
+                      'ingelesa',
+                      'Ingelesa',
+                    ],
+                  ].map(
+                    ([
+                      value,
+                      label,
+                    ]) => (
+                      <button
+                        key={
+                          value
+                        }
+                        type="button"
+                        className={
+                          pendingLanguages.includes(
+                            value
+                          )
+                            ? 'filter-chip selected'
+                            : 'filter-chip'
+                        }
+                        onClick={() =>
+                          togglePendingLanguage(
+                            value
+                          )
+                        }
+                      >
+                        {
+                          label
+                        }
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+
+              {/* ======================
+                  ORRIALDEAK
+                  ====================== */}
+
+              <div className="filter-group">
+                <h3>
+                  Orrialdeak
+                </h3>
+
+                <div className="pages-filter-grid">
+                  <label>
                     <span>
-                      {
-                        criterion.name
-                      }
+                      Gutxienez
                     </span>
 
-                    <RatingRangeSelector
-                      selected={
-                        pendingFilters
-                          .criterionRanges[
-                          criterion.id
-                        ] ?? []
+                    <input
+                      type="number"
+                      min="1"
+                      value={
+                        pendingMinPages
                       }
-                      onToggle={(
-                        range
+                      onChange={(
+                        e
                       ) =>
-                        toggleCriterionRange(
-                          criterion.id,
-                          range
+                        setPendingMinPages(
+                          e
+                            .target
+                            .value
                         )
                       }
+                      placeholder="0"
                     />
-                  </div>
-                )
-              )}
-            </div>
-          </FilterSection>
+                  </label>
 
-          {/* ESTILOS */}
+                  <label>
+                    <span>
+                      Gehienez
+                    </span>
 
-          <FilterSection
-            title="Estiloak"
-          >
-            <div className="filter-chip-list">
-              {styles.map(
-                (style) => (
-                  <FilterChip
-                    key={
-                      style.id
-                    }
-                    active={
-                      pendingFilters.styleIds.includes(
-                        style.id
-                      )
-                    }
-                    onClick={() =>
-                      toggleStyle(
-                        style.id
-                      )
-                    }
-                  >
-                    {style.name}
-                  </FilterChip>
-                )
-              )}
-            </div>
-          </FilterSection>
-
-          {/* PÁGINAS */}
-
-          <FilterSection
-            title="Orrialde kopurua"
-          >
-            <div className="pages-filter">
-              <div className="field">
-                <label>
-                  Gutxienez
-                </label>
-
-                <input
-                  type="number"
-                  min="0"
-                  value={
-                    pendingFilters.minPages
-                  }
-                  onChange={(e) =>
-                    setPendingFilters(
-                      (
-                        current
-                      ) => ({
-                        ...current,
-
-                        minPages:
-                          e.target
-                            .value,
-                      })
-                    )
-                  }
-                  placeholder="0"
-                />
+                    <input
+                      type="number"
+                      min="1"
+                      value={
+                        pendingMaxPages
+                      }
+                      onChange={(
+                        e
+                      ) =>
+                        setPendingMaxPages(
+                          e
+                            .target
+                            .value
+                        )
+                      }
+                      placeholder="500"
+                    />
+                  </label>
+                </div>
               </div>
 
-              <div className="field">
-                <label>
-                  Gehienez
-                </label>
+              {/* ======================
+                  BOTONES
+                  ====================== */}
 
-                <input
-                  type="number"
-                  min="0"
-                  value={
-                    pendingFilters.maxPages
-                  }
-                  onChange={(e) =>
-                    setPendingFilters(
-                      (
-                        current
-                      ) => ({
-                        ...current,
-
-                        maxPages:
-                          e.target
-                            .value,
-                      })
-                    )
-                  }
-                  placeholder="500"
-                />
-              </div>
-            </div>
-          </FilterSection>
-
-          {/* AUTORES */}
-
-          <FilterSection
-            title="Idazlea"
-          >
-            <div className="filter-chip-list">
-              {authors.map(
-                (author) => (
-                  <FilterChip
-                    key={
-                      author
-                    }
-                    active={
-                      pendingFilters.authors.includes(
-                        author
-                      )
-                    }
-                    onClick={() =>
-                      toggleAuthor(
-                        author
-                      )
-                    }
-                  >
-                    {author}
-                  </FilterChip>
-                )
-              )}
-            </div>
-          </FilterSection>
-
-          {/* IDIOMAS */}
-
-          <FilterSection
-            title="Hizkuntza"
-          >
-            <div className="filter-chip-list">
-              <FilterChip
-                active={
-                  pendingFilters.languages.includes(
-                    'euskara'
-                  )
-                }
-                onClick={() =>
-                  toggleLanguage(
-                    'euskara'
-                  )
-                }
-              >
-                Euskara
-              </FilterChip>
-
-              <FilterChip
-                active={
-                  pendingFilters.languages.includes(
-                    'gaztelera'
-                  )
-                }
-                onClick={() =>
-                  toggleLanguage(
-                    'gaztelera'
-                  )
-                }
-              >
-                Gaztelera
-              </FilterChip>
-
-              <FilterChip
-                active={
-                  pendingFilters.languages.includes(
-                    'ingelesa'
-                  )
-                }
-                onClick={() =>
-                  toggleLanguage(
-                    'ingelesa'
-                  )
-                }
-              >
-                Ingelesa
-              </FilterChip>
-            </div>
-          </FilterSection>
-
-          <button
-            className="search-books-button"
-            onClick={
-              applyFilters
-            }
-          >
-            Bilatu
-          </button>
-        </section>
-      )}
-
-      {/* CONTENIDO */}
-
-      {loading && (
-        <p className="placeholder">
-          Liburutegia kargatzen...
-        </p>
-      )}
-
-      {error && (
-        <p className="error-message">
-          {error}
-        </p>
-      )}
-
-      {!loading &&
-        !error &&
-        books.length === 0 && (
-          <div className="empty-library">
-            <strong>
-              Oraindik ez dago
-              libururik.
-            </strong>
-          </div>
-        )}
-
-      {!loading &&
-        !error &&
-        books.length > 0 && (
-          <>
-            <div className="library-results-heading">
-              <div>
-                <strong>
-                  {
-                    filteredBooks.length
-                  }{' '}
-                  {filteredBooks.length ===
-                  1
-                    ? 'liburu aurkitu da'
-                    : 'liburu aurkitu dira'}
-                </strong>
-
-                {activeFiltersCount >
-                  0 && (
-                  <span>
-                    {
-                      activeFiltersCount
-                    }{' '}
-                    iragazki aktibo
-                  </span>
-                )}
-              </div>
-
-              {activeFiltersCount >
-                0 && (
+              <div className="filters-actions">
                 <button
+                  type="button"
+                  className="secondary-button"
                   onClick={
                     clearFilters
                   }
                 >
-                  Iragazkiak kendu
+                  Garbitu
                 </button>
-              )}
-            </div>
 
-            {filteredBooks.length ===
-            0 ? (
-              <div className="empty-library">
-                <strong>
-                  Ez da libururik
-                  aurkitu.
-                </strong>
-
-                <p>
-                  Saiatu iragazki
-                  batzuk kentzen.
-                </p>
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={
+                    applyFilters
+                  }
+                >
+                  Bilatu
+                </button>
               </div>
-            ) : (
-              <div className="books-grid">
-                {filteredBooks.map(
-                  (book) => (
-                    <BookCard
-                      key={
-                        book.id
-                      }
-                      book={
-                        book
-                      }
-                      onOpen={
-                        onOpenBook
-                      }
-                    />
-                  )
-                )}
-              </div>
-            )}
-          </>
-        )}
+            </section>
+          )}
 
-      {/* GOMENDATUTAKOAK */}
+          {/* ==================================================
+              RESULTADOS
+              ================================================== */}
 
-      {showRecommendations &&
-        recommendedBooks.length >
-          0 && (
-          <div
-            className="modal-overlay"
-            onMouseDown={() =>
-              setShowRecommendations(
-                false
-              )
-            }
-          >
-            <div
-              className="modal recommendations-modal"
-              onMouseDown={(e) =>
-                e.stopPropagation()
-              }
-            >
-              <button
-                className="modal-close"
-                onClick={() =>
-                  setShowRecommendations(
-                    false
-                  )
-                }
-                aria-label="Itxi"
-              >
-                ×
-              </button>
+          <div className="library-results-summary">
+            <strong>
+              {
+                filteredBooks.length
+              }{' '}
+              liburu aurkitu dira
+            </strong>
+          </div>
 
-              <div className="recommendation-star">
-                ★
-              </div>
-
-              <h2>
-                Azken gomendapenak
-              </h2>
+          {filteredBooks.length ===
+          0 ? (
+            <div className="empty-library">
+              <strong>
+                Ez da libururik
+                aurkitu.
+              </strong>
 
               <p>
-                Une honetan nabarmendu
-                nahi ditugun liburuak.
+                Saiatu iragazki
+                batzuk aldatzen.
               </p>
-
-              <div className="recommended-grid">
-                {recommendedBooks.map(
-                  (book) => (
-                    <button
-                      key={
-                        book.id
-                      }
-                      className="recommended-card"
-                      onClick={() => {
-                        setShowRecommendations(
-                          false
-                        )
-
-                        onOpenBook(
-                          book.id
-                        )
-                      }}
-                    >
-                      <div className="recommended-cover">
-                        {book.cover_url ? (
-                          <img
-                            src={
-                              book.cover_url
-                            }
-                            alt={
-                              book.title
-                            }
-                          />
-                        ) : (
-                          <div>
-                            📖
-                          </div>
-                        )}
-                      </div>
-
-                      <strong>
-                        {
-                          book.title
-                        }
-                      </strong>
-
-                      <span>
-                        {
-                          book.author
-                        }
-                      </span>
-
-                      <div className="recommended-rating">
-                        ★{' '}
-                        {book.average ===
-                        null
-                          ? '–'
-                          : book.average
-                              .toFixed(
-                                1
-                              )
-                              .replace(
-                                '.',
-                                ','
-                              )}
-                      </div>
-                    </button>
-                  )
-                )}
-              </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="library-grid">
+              {filteredBooks.map(
+                (book) => (
+                  <BookCard
+                    key={
+                      book.id
+                    }
+                    book={
+                      book
+                    }
+                    stats={
+                      statsByBook.get(
+                        book.id
+                      ) ?? {
+                        overallAverage:
+                          null,
+
+                        ratingCount:
+                          0,
+
+                        commentCount:
+                          0,
+                      }
+                    }
+                    topicName={
+                      getTopicName(
+                        book.topic_id
+                      )
+                    }
+                    tags={
+                      getBookTags(
+                        book.id
+                      )
+                    }
+                    onOpen={() =>
+                      onOpenBook(
+                        book.id
+                      )
+                    }
+                  />
+                )
+              )}
+            </div>
+          )}
+        </>
+      )}
     </section>
   )
 }
 
-// =========================
-// TARJETA DE LIBRO
-// =========================
+// ============================================================
+// SELECTOR ÚNICO
+// ============================================================
 
-type BookCardProps = {
-  book: BookWithStats
-  onOpen: (
-    bookId: number
+function FilterSingleSelect({
+  title,
+  options,
+  selectedId,
+  onSelect,
+  allowClear = false,
+}: {
+  title: string
+  options: Option[]
+  selectedId:
+    | number
+    | null
+  onSelect: (
+    value:
+      | number
+      | null
   ) => void
+  allowClear?: boolean
+}) {
+  return (
+    <div className="filter-group">
+      <h3>
+        {title}
+      </h3>
+
+      <div className="filter-chip-list">
+        {options.map(
+          (option) => (
+            <button
+              key={
+                option.id
+              }
+              type="button"
+              className={
+                selectedId ===
+                option.id
+                  ? 'filter-chip selected'
+                  : 'filter-chip'
+              }
+              onClick={() => {
+                if (
+                  allowClear &&
+                  selectedId ===
+                    option.id
+                ) {
+                  onSelect(
+                    null
+                  )
+                } else {
+                  onSelect(
+                    option.id
+                  )
+                }
+              }}
+            >
+              {
+                option.name
+              }
+            </button>
+          )
+        )}
+      </div>
+    </div>
+  )
 }
+
+// ============================================================
+// TARJETA
+// ============================================================
 
 function BookCard({
   book,
+  stats,
+  topicName,
+  tags,
   onOpen,
-}: BookCardProps) {
+}: {
+  book: Book
+  stats: BookStats
+  topicName:
+    | string
+    | null
+  tags: Tag[]
+  onOpen: () => void
+}) {
   return (
     <button
-      className="book-card"
-      onClick={() =>
-        onOpen(book.id)
+      type="button"
+      className="library-book-card"
+      onClick={
+        onOpen
       }
     >
-      <div className="book-card-cover">
+      <div className="library-book-cover">
         {book.cover_url ? (
           <img
-            src={book.cover_url}
-            alt={book.title}
+            src={
+              book.cover_url
+            }
+            alt={
+              book.title
+            }
           />
         ) : (
-          <div className="book-card-no-cover">
+          <div className="library-no-cover">
             📖
-          </div>
-        )}
-
-        {book.recommended && (
-          <div className="recommended-badge">
-            ★
           </div>
         )}
       </div>
 
-      <div className="book-card-body">
+      <div className="library-book-info">
         <h2>
-          {book.title}
+          {
+            book.title
+          }
         </h2>
 
-        <p className="book-card-author">
-          {book.author}
+        <p className="library-book-author">
+          {
+            book.author
+          }
         </p>
 
-        <div className="book-card-rating">
-          <span className="rating-star">
-            ★
+        {topicName && (
+          <span className="book-topic-badge">
+            {
+              topicName
+            }
           </span>
+        )}
+
+        <div className="book-card-tags">
+          {tags
+            .slice(
+              0,
+              3
+            )
+            .map(
+              (tag) => (
+                <span
+                  key={
+                    tag.id
+                  }
+                >
+                  #
+                  {
+                    tag.name
+                  }
+                </span>
+              )
+            )}
+        </div>
+
+        <div className="book-card-rating">
+          <StarRating
+            value={
+              stats.overallAverage
+            }
+          />
 
           <strong>
-            {book.average ===
-            null
-              ? '–'
-              : book.average
-                  .toFixed(1)
-                  .replace(
-                    '.',
-                    ','
-                  )}
+            {formatScore(
+              stats.overallAverage
+            )}
           </strong>
+        </div>
 
-          {book.ratingCount >
-            0 && (
-            <span className="rating-count">
-              (
+        <div className="book-card-counts">
+          <span>
+            Balorazioak:{' '}
+            <strong>
               {
-                book.ratingCount
+                stats.ratingCount
               }
-              )
-            </span>
-          )}
+            </strong>
+          </span>
+
+          <span>
+            Iruzkinak:{' '}
+            <strong>
+              {
+                stats.commentCount
+              }
+            </strong>
+          </span>
         </div>
       </div>
     </button>
   )
 }
 
-// =========================
-// SECCIÓN DE FILTRO
-// =========================
+// ============================================================
+// IRAKURRIENAK
+// ============================================================
 
-function FilterSection({
-  title,
-  children,
+function MostReadView({
+  sections,
+  onOpenBook,
 }: {
-  title: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="filter-section">
-      <h3>
-        {title}
-      </h3>
+  sections: {
+    ageRange: AgeRange
 
-      {children}
-    </div>
-  )
-}
+    books: {
+      book: Book
+      count: number
+    }[]
+  }[]
 
-// =========================
-// CHIP
-// =========================
-
-function FilterChip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean
-  onClick: () => void
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      className={
-        active
-          ? 'filter-chip active'
-          : 'filter-chip'
-      }
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  )
-}
-
-// =========================
-// INTERVALOS DE NOTA
-// =========================
-
-function RatingRangeSelector({
-  selected,
-  onToggle,
-}: {
-  selected: RangeKey[]
-  onToggle: (
-    range: RangeKey
+  onOpenBook: (
+    id: number
   ) => void
 }) {
   return (
-    <div className="rating-range-list">
-      {ratingRanges.map(
-        (range) => (
-          <button
+    <div className="most-read-view">
+      <header className="most-read-header">
+        <h2>
+          Irakurrienak
+        </h2>
+
+        <p>
+          Adin-tarte
+          bakoitzean
+          balorazio gehien
+          jaso dituzten
+          liburuak.
+        </p>
+      </header>
+
+      {sections.map(
+        (section) => (
+          <section
             key={
-              range.key
+              section
+                .ageRange
+                .id
             }
-            type="button"
-            className={
-              selected.includes(
-                range.key
-              )
-                ? 'rating-range-chip active'
-                : 'rating-range-chip'
-            }
-            onClick={() =>
-              onToggle(
-                range.key
-              )
-            }
+            className="most-read-section"
           >
-            {range.label}
-          </button>
+            <h3>
+              {
+                section
+                  .ageRange
+                  .label
+              }
+            </h3>
+
+            {section.books.length ===
+            0 ? (
+              <p className="most-read-empty">
+                Oraindik ez dago
+                daturik.
+              </p>
+            ) : (
+              <div className="most-read-list">
+                {section.books
+                  .slice(
+                    0,
+                    10
+                  )
+                  .map(
+                    (
+                      item,
+                      index
+                    ) => (
+                      <div
+                        key={
+                          item
+                            .book
+                            .id
+                        }
+                        className="most-read-row"
+                      >
+                        <span className="most-read-position">
+                          {
+                            index +
+                            1
+                          }
+                        </span>
+
+                        <div className="most-read-mini-cover">
+                          {item
+                            .book
+                            .cover_url ? (
+                            <img
+                              src={
+                                item
+                                  .book
+                                  .cover_url
+                              }
+                              alt={
+                                item
+                                  .book
+                                  .title
+                              }
+                            />
+                          ) : (
+                            <span>
+                              📖
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="most-read-book-info">
+                          <strong>
+                            {
+                              item
+                                .book
+                                .title
+                            }
+                          </strong>
+
+                          <span>
+                            {
+                              item
+                                .book
+                                .author
+                            }
+                          </span>
+                        </div>
+
+                        <div className="most-read-count">
+                          <strong>
+                            {
+                              item
+                                .count
+                            }
+                          </strong>
+
+                          <span>
+                            balorazio
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          onClick={() =>
+                            onOpenBook(
+                              item
+                                .book
+                                .id
+                            )
+                          }
+                        >
+                          Ikusi
+                        </button>
+                      </div>
+                    )
+                  )}
+              </div>
+            )}
+          </section>
         )
       )}
     </div>
   )
 }
 
-// =========================
-// UTILIDADES
-// =========================
+// ============================================================
+// ESTRELLAS
+// ============================================================
 
-function toggleValue<T>(
-  current: T[],
-  value: T
+function StarRating({
+  value,
+}: {
+  value:
+    | number
+    | null
+}) {
+  return (
+    <span className="star-rating star-rating-small">
+      {[0, 1, 2, 3, 4].map(
+        (index) => {
+          const fill =
+            value ===
+            null
+              ? 0
+              : Math.max(
+                  0,
+                  Math.min(
+                    1,
+                    value -
+                      index
+                  )
+                )
+
+          return (
+            <span
+              key={
+                index
+              }
+              className="single-star"
+              style={
+                {
+                  '--fill':
+                    `${fill * 100}%`,
+                } as React.CSSProperties
+              }
+            >
+              ★
+            </span>
+          )
+        }
+      )}
+    </span>
+  )
+}
+
+// ============================================================
+// UTILIDADES
+// ============================================================
+
+function formatScore(
+  value:
+    | number
+    | null
 ) {
   if (
-    current.includes(value)
+    value === null
   ) {
-    return current.filter(
+    return '–'
+  }
+
+  return value
+    .toFixed(1)
+    .replace(
+      '.',
+      ','
+    )
+}
+
+function normalizeText(
+  value: string
+) {
+  return value
+    .normalize('NFD')
+    .replace(
+      /[\u0300-\u036f]/g,
+      ''
+    )
+    .toLowerCase()
+    .trim()
+}
+
+function scoreMatchesRange(
+  score: number,
+  rangeKey: string
+) {
+  const range =
+    SCORE_RANGES.find(
       (item) =>
-        item !== value
+        item.key ===
+        rangeKey
+    )
+
+  if (!range) {
+    return false
+  }
+
+  // El último intervalo
+  // incluye exactamente 5.
+  if (
+    range.min === 4 &&
+    range.max === 5
+  ) {
+    return (
+      score >= 4 &&
+      score <= 5
     )
   }
 
-  return [
-    ...current,
-    value,
-  ]
-}
-
-function valueMatchesRanges(
-  value: number,
-  ranges: RangeKey[]
-) {
-  return ranges.some(
-    (rangeKey) => {
-      const range =
-        ratingRanges.find(
-          (item) =>
-            item.key ===
-            rangeKey
-        )
-
-      if (!range) {
-        return false
-      }
-
-      /*
-        Evitamos que exactamente 1,
-        2, 3 o 4 pertenezcan a dos
-        intervalos a la vez.
-
-        0–1 -> 0 <= x < 1
-        1–2 -> 1 <= x < 2
-        ...
-        4–5 -> 4 <= x <= 5
-      */
-
-      if (
-        range.key ===
-        '4-5'
-      ) {
-        return (
-          value >= range.min &&
-          value <= range.max
-        )
-      }
-
-      return (
-        value >= range.min &&
-        value < range.max
-      )
-    }
+  // Los demás:
+  // mínimo incluido,
+  // máximo excluido.
+  return (
+    score >= range.min &&
+    score < range.max
   )
-}
-
-function countActiveFilters(
-  filters: FilterState
-) {
-  let count = 0
-
-  if (
-    filters.overallRanges
-      .length > 0
-  ) {
-    count++
-  }
-
-  Object.values(
-    filters.criterionRanges
-  ).forEach(
-    (ranges) => {
-      if (
-        ranges.length > 0
-      ) {
-        count++
-      }
-    }
-  )
-
-  if (
-    filters.styleIds.length >
-    0
-  ) {
-    count++
-  }
-
-  if (
-    filters.authors.length >
-    0
-  ) {
-    count++
-  }
-
-  if (
-    filters.languages.length >
-    0
-  ) {
-    count++
-  }
-
-  if (
-    filters.minPages !== '' ||
-    filters.maxPages !== ''
-  ) {
-    count++
-  }
-
-  return count
 }

@@ -16,236 +16,510 @@ type Pantalla =
   | 'biblioteca'
   | 'liburu-fitxa'
 
-function App() {
-  const [pantalla, setPantalla] =
-    useState<Pantalla>('inicio')
+export default function App() {
+  const [
+    pantalla,
+    setPantalla,
+  ] =
+    useState<Pantalla>(
+      'inicio'
+    )
 
-  const [mostrarPassword, setMostrarPassword] =
+  // ============================================================
+  // PASSWORD ERREKATXO
+  // ============================================================
+
+  const [
+    mostrarPassword,
+    setMostrarPassword,
+  ] =
     useState(false)
 
-  const [password, setPassword] =
+  const [
+    password,
+    setPassword,
+  ] =
     useState('')
 
-  const [errorPassword, setErrorPassword] =
+  const [
+    errorPassword,
+    setErrorPassword,
+  ] =
     useState('')
 
-  const [createdBookId, setCreatedBookId] =
-    useState<number | null>(null)
+  // ============================================================
+  // LIBURU BERRIA
+  // ============================================================
 
-  const [selectedBookId, setSelectedBookId] =
-    useState<number | null>(null)
+  const [
+    createdBookId,
+    setCreatedBookId,
+  ] =
+    useState<
+      number | null
+    >(null)
 
-  const [detailBookId, setDetailBookId] =
-    useState<number | null>(null)
-
-  const [showCreatedModal, setShowCreatedModal] =
+  const [
+    showCreatedModal,
+    setShowCreatedModal,
+  ] =
     useState(false)
 
-  const [showRatingModal, setShowRatingModal] =
+  // ============================================================
+  // BALORAZIOA
+  // ============================================================
+
+  const [
+    selectedBookId,
+    setSelectedBookId,
+  ] =
+    useState<
+      number | null
+    >(null)
+
+  const [
+    showRatingModal,
+    setShowRatingModal,
+  ] =
     useState(false)
 
-  function abrirAccesoValoracion() {
+  // ============================================================
+  // LIBURU FITXA
+  // ============================================================
+
+  const [
+    detailBookId,
+    setDetailBookId,
+  ] =
+    useState<
+      number | null
+    >(null)
+
+  // ============================================================
+  // PASSWORD FLOW
+  // ============================================================
+
+  function openRatingAccess() {
     setPassword('')
     setErrorPassword('')
-    setMostrarPassword(true)
+    setMostrarPassword(
+      true
+    )
   }
 
-  function comprobarPassword(
+  function closePasswordModal() {
+    setMostrarPassword(
+      false
+    )
+
+    setPassword('')
+    setErrorPassword('')
+  }
+
+  function checkPassword(
     e: React.FormEvent
   ) {
     e.preventDefault()
 
-    if (password === 'errekatxo') {
-      setMostrarPassword(false)
-      setPassword('')
-      setErrorPassword('')
-      setPantalla('gestion')
-    } else {
+    if (
+      password !==
+      'errekatxo'
+    ) {
       setErrorPassword(
         'Pasahitza ez da zuzena.'
       )
+
+      return
     }
+
+    setMostrarPassword(
+      false
+    )
+
+    setPassword('')
+    setErrorPassword('')
+
+    setPantalla(
+      'gestion'
+    )
   }
+
+  // ============================================================
+  // LIBURU BERRIA SORTU
+  // ============================================================
+
+  function handleBookCreated(
+    bookId: number
+  ) {
+    setCreatedBookId(
+      bookId
+    )
+
+    setShowCreatedModal(
+      true
+    )
+  }
+
+  function rateCreatedBook() {
+    if (
+      createdBookId ===
+      null
+    ) {
+      return
+    }
+
+    setShowCreatedModal(
+      false
+    )
+
+    setSelectedBookId(
+      createdBookId
+    )
+
+    setShowRatingModal(
+      true
+    )
+  }
+
+  function closeCreatedModal() {
+    setShowCreatedModal(
+      false
+    )
+
+    setCreatedBookId(
+      null
+    )
+
+    setPantalla(
+      'gestion'
+    )
+  }
+
+  // ============================================================
+  // EXISTITZEN DEN LIBURUA
+  // ============================================================
+
+  function selectExistingBook(
+    bookId: number
+  ) {
+    setSelectedBookId(
+      bookId
+    )
+
+    setShowRatingModal(
+      true
+    )
+  }
+
+  // ============================================================
+  // BALORAZIO MODALA
+  // ============================================================
+
+  function closeRatingModal() {
+    setShowRatingModal(
+      false
+    )
+
+    setSelectedBookId(
+      null
+    )
+  }
+
+  function ratingSaved() {
+    setShowRatingModal(
+      false
+    )
+
+    setSelectedBookId(
+      null
+    )
+
+    setPantalla(
+      'gestion'
+    )
+  }
+
+  // ============================================================
+  // LIBURU FITXA
+  // ============================================================
+
+  function openBookDetail(
+    bookId: number
+  ) {
+    setDetailBookId(
+      bookId
+    )
+
+    setPantalla(
+      'liburu-fitxa'
+    )
+  }
+
+  // ============================================================
+  // BOOK DETAIL
+  // ============================================================
 
   if (
-    pantalla === 'liburu-fitxa' &&
-    detailBookId !== null
+    pantalla ===
+      'liburu-fitxa' &&
+    detailBookId !==
+      null
   ) {
     return (
-      <main className="app">
-        <BookDetail
-          bookId={detailBookId}
+      <BookDetail
+        bookId={
+          detailBookId
+        }
+        onBack={() => {
+          setDetailBookId(
+            null
+          )
+
+          setPantalla(
+            'biblioteca'
+          )
+        }}
+      />
+    )
+  }
+
+  // ============================================================
+  // LIBURU BERRIA
+  // ============================================================
+
+  if (
+    pantalla ===
+    'liburu-berria'
+  ) {
+    return (
+      <>
+        <NewBookForm
           onBack={() =>
-            setPantalla('biblioteca')
+            setPantalla(
+              'gestion'
+            )
+          }
+          onCreated={
+            handleBookCreated
           }
         />
-      </main>
-    )
-  }
 
-  if (pantalla === 'liburu-berria') {
-    return (
-      <main className="app">
-        <NewBookForm
-          onBack={() => {
-            setCreatedBookId(null)
-            setShowCreatedModal(false)
-            setShowRatingModal(false)
-            setPantalla('gestion')
-          }}
-          onCreated={(bookId) => {
-            setCreatedBookId(bookId)
-            setShowCreatedModal(true)
-          }}
-        />
-
-        {showCreatedModal && (
-          <BookCreatedModal
-            onRate={() => {
-              setShowCreatedModal(false)
-              setShowRatingModal(true)
-            }}
-            onFinish={() => {
-              setShowCreatedModal(false)
-              setCreatedBookId(null)
-              setPantalla('gestion')
-            }}
-          />
-        )}
-
-        {showRatingModal &&
-          createdBookId !== null && (
-            <RatingModal
-              bookId={createdBookId}
-              onClose={() => {
-                setShowRatingModal(false)
-                setCreatedBookId(null)
-                setPantalla('gestion')
-              }}
-              onSaved={() => {
-                setShowRatingModal(false)
-                setCreatedBookId(null)
-                setPantalla('gestion')
-
-                alert(
-                  'Balorazioa behar bezala gorde da.'
-                )
-              }}
+        {showCreatedModal &&
+          createdBookId !==
+            null && (
+            <BookCreatedModal
+              onRate={rateCreatedBook}
+              onFinish={closeCreatedModal}
             />
           )}
-      </main>
+
+        {showRatingModal &&
+          selectedBookId !==
+            null && (
+            <RatingModal
+              bookId={
+                selectedBookId
+              }
+              onClose={
+                closeRatingModal
+              }
+              onSaved={
+                ratingSaved
+              }
+            />
+          )}
+      </>
     )
   }
+
+  // ============================================================
+  // EXISTITZEN DEN LIBURUA
+  // ============================================================
 
   if (
     pantalla ===
     'existitzen-den-liburua'
   ) {
     return (
-      <main className="app">
+      <>
         <ExistingBookSelector
-          onBack={() => {
-            setSelectedBookId(null)
-            setShowRatingModal(false)
-            setPantalla('gestion')
-          }}
-          onSelectBook={(bookId) => {
-            setSelectedBookId(bookId)
-            setShowRatingModal(true)
-          }}
+          onBack={() =>
+            setPantalla(
+              'gestion'
+            )
+          }
+          onSelectBook={
+            selectExistingBook
+          }
         />
 
         {showRatingModal &&
-          selectedBookId !== null && (
+          selectedBookId !==
+            null && (
             <RatingModal
-              bookId={selectedBookId}
-              onClose={() => {
-                setShowRatingModal(false)
-                setSelectedBookId(null)
-              }}
-              onSaved={() => {
-                setShowRatingModal(false)
-                setSelectedBookId(null)
-                setPantalla('gestion')
-
-                alert(
-                  'Balorazioa behar bezala gorde da.'
-                )
-              }}
+              bookId={
+                selectedBookId
+              }
+              onClose={
+                closeRatingModal
+              }
+              onSaved={
+                ratingSaved
+              }
             />
           )}
-      </main>
+      </>
     )
   }
 
-  if (pantalla === 'gestion') {
+  // ============================================================
+  // LIBURUTEGIA
+  // ============================================================
+
+  if (
+    pantalla ===
+    'biblioteca'
+  ) {
     return (
-      <main className="app">
-        <section className="page">
+      <>
+        <LibraryView
+          onBack={() =>
+            setPantalla(
+              'inicio'
+            )
+          }
+          onRateBook={
+            openRatingAccess
+          }
+          onOpenBook={
+            openBookDetail
+          }
+        />
+
+        {mostrarPassword && (
+          <PasswordModal
+            password={
+              password
+            }
+            error={
+              errorPassword
+            }
+            onPasswordChange={
+              setPassword
+            }
+            onSubmit={
+              checkPassword
+            }
+            onClose={
+              closePasswordModal
+            }
+          />
+        )}
+      </>
+    )
+  }
+
+  // ============================================================
+  // GESTIÓN
+  // ============================================================
+
+  if (
+    pantalla ===
+    'gestion'
+  ) {
+    return (
+      <main className="app-shell">
+        <section className="home-page">
           <button
             className="back-button"
+            type="button"
             onClick={() =>
-              setPantalla('inicio')
+              setPantalla(
+                'inicio'
+              )
             }
           >
             ← Itzuli
           </button>
 
-          <div className="small-logo">
-            LIBURUBILA
-          </div>
+          <header className="home-header">
+            <div className="brand-mark">
+              L
+            </div>
 
-          <h1 className="section-title">
-            Zer egin nahi duzu?
-          </h1>
+            <div className="small-logo">
+              LIBURUBILA
+            </div>
 
-          <div className="option-grid">
+            <h1>
+              Zer egin nahi
+              duzu?
+            </h1>
+          </header>
+
+          <div className="home-options">
+            {/* LIBURUA GEHITU */}
+
             <button
-              className="option-card"
+              className="home-option-card"
+              type="button"
               onClick={() =>
                 setPantalla(
                   'liburu-berria'
                 )
               }
             >
-              <span className="option-icon">
+              <div className="home-option-icon">
                 ＋
-              </span>
+              </div>
 
               <div>
                 <h2>
-                  Liburu berria
+                  Liburua gehitu
                 </h2>
 
                 <p>
-                  Liburutegian oraindik ez
-                  dagoen liburu bat gehitu.
+                  Liburutegian
+                  oraindik ez dagoen
+                  liburu bat gehitu.
                 </p>
               </div>
+
+              <span className="home-option-arrow">
+                →
+              </span>
             </button>
 
+            {/* IRITZIA EMAN */}
+
             <button
-              className="option-card"
+              className="home-option-card"
+              type="button"
               onClick={() =>
                 setPantalla(
                   'existitzen-den-liburua'
                 )
               }
             >
-              <span className="option-icon">
-                ⌕
-              </span>
+              <div className="home-option-icon">
+                ★
+              </div>
 
               <div>
                 <h2>
-                  Existitzen den liburua
+                  Iritzia eman
                 </h2>
 
                 <p>
-                  Liburutegiko liburu bat
-                  bilatu eta baloratu.
+                  Liburutegiko
+                  liburu bat bilatu
+                  eta baloratu.
                 </p>
               </div>
+
+              <span className="home-option-arrow">
+                →
+              </span>
             </button>
           </div>
         </section>
@@ -253,188 +527,214 @@ function App() {
     )
   }
 
-  if (pantalla === 'biblioteca') {
-    return (
-      <main className="app">
-        <LibraryView
-          onBack={() =>
-            setPantalla('inicio')
-          }
-          onRateBook={
-            abrirAccesoValoracion
-          }
-          onOpenBook={(bookId) => {
-            setDetailBookId(bookId)
-            setPantalla('liburu-fitxa')
-          }}
-        />
-
-        {mostrarPassword && (
-          <PasswordModal
-            password={password}
-            setPassword={setPassword}
-            error={errorPassword}
-            onClose={() => {
-              setMostrarPassword(false)
-              setPassword('')
-              setErrorPassword('')
-            }}
-            onSubmit={comprobarPassword}
-          />
-        )}
-      </main>
-    )
-  }
+  // ============================================================
+  // HASIERA
+  // ============================================================
 
   return (
-    <main className="app">
-      <section className="hero">
-        <div className="brand-mark">
-          L
-        </div>
+    <>
+      <main className="app-shell">
+        <section className="home-page">
+          <header className="home-header main-home-header">
+            <div className="brand-mark">
+              L
+            </div>
 
-        <h1 className="logo">
-          Liburubila
-        </h1>
+            <div className="small-logo">
+              LIBURUBILA
+            </div>
 
-        <p className="tagline">
-          Aukeratu zure liburua eta
-          lagundu besteei aukeratzen
-        </p>
+            <blockquote className="home-quote">
+              <p>
+                “Irakurtzea nor
+                bere gelatik atera
+                gabe mundu osoari
+                buelta ematea da,
+                mugarik eta
+                menderatzerik
+                gabe.”
+              </p>
 
-        <div className="home-options">
-          <button
-            className="home-card"
-            onClick={
-              abrirAccesoValoracion
-            }
-          >
-            <span className="home-icon">
-              ✦
-            </span>
+              <cite>
+                Arantxa
+                Urretabizkaia
+              </cite>
+            </blockquote>
+          </header>
 
-            <span className="home-card-content">
-              <strong>
-                Liburu bat baloratu
-              </strong>
+          <div className="home-options">
+            {/* LIBURU BAT BALORATU */}
 
-              <small>
-                Partekatu zure
-                esperientzia
-              </small>
-            </span>
+            <button
+              className="home-option-card"
+              type="button"
+              onClick={
+                openRatingAccess
+              }
+            >
+              <div className="home-option-icon">
+                ★
+              </div>
 
-            <span className="arrow">
-              →
-            </span>
-          </button>
+              <div>
+                <h2>
+                  Liburu bat
+                  baloratu
+                </h2>
 
-          <button
-            className="home-card featured"
-            onClick={() =>
-              setPantalla(
-                'biblioteca'
-              )
-            }
-          >
-            <span className="home-icon">
-              ⌕
-            </span>
+                <p>
+                  Elkarbanatu
+                  zure
+                  esperientzia.
+                </p>
+              </div>
 
-            <span className="home-card-content">
-              <strong>
-                Zer irakur dezaket?
-              </strong>
+              <span className="home-option-arrow">
+                →
+              </span>
+            </button>
 
-              <small>
-                Aurkitu zure hurrengo
-                liburua
-              </small>
-            </span>
+            {/* ZER IRAKUR DEZAKET? */}
 
-            <span className="arrow">
-              →
-            </span>
-          </button>
-        </div>
-      </section>
+            <button
+              className="home-option-card"
+              type="button"
+              onClick={() =>
+                setPantalla(
+                  'biblioteca'
+                )
+              }
+            >
+              <div className="home-option-icon">
+                📖
+              </div>
+
+              <div>
+                <h2>
+                  Zer irakur
+                  dezaket?
+                </h2>
+
+                <p>
+                  Arakatu eta
+                  erabaki zer
+                  irakurri nahi
+                  duzun.
+                </p>
+              </div>
+
+              <span className="home-option-arrow">
+                →
+              </span>
+            </button>
+          </div>
+        </section>
+      </main>
 
       {mostrarPassword && (
         <PasswordModal
-          password={password}
-          setPassword={setPassword}
-          error={errorPassword}
-          onClose={() => {
-            setMostrarPassword(false)
-            setPassword('')
-            setErrorPassword('')
-          }}
-          onSubmit={comprobarPassword}
+          password={
+            password
+          }
+          error={
+            errorPassword
+          }
+          onPasswordChange={
+            setPassword
+          }
+          onSubmit={
+            checkPassword
+          }
+          onClose={
+            closePasswordModal
+          }
         />
       )}
-    </main>
+    </>
   )
 }
 
-type PasswordModalProps = {
-  password: string
-  setPassword: (value: string) => void
-  error: string
-  onClose: () => void
-  onSubmit: (e: React.FormEvent) => void
-}
+// ============================================================
+// PASSWORD MODAL
+// ============================================================
 
 function PasswordModal({
   password,
-  setPassword,
   error,
-  onClose,
+  onPasswordChange,
   onSubmit,
-}: PasswordModalProps) {
+  onClose,
+}: {
+  password: string
+  error: string
+  onPasswordChange: (
+    value: string
+  ) => void
+  onSubmit: (
+    e: React.FormEvent
+  ) => void
+  onClose: () => void
+}) {
   return (
     <div
       className="modal-overlay"
-      onMouseDown={onClose}
+      onMouseDown={
+        onClose
+      }
     >
       <div
         className="modal"
-        onMouseDown={(e) =>
+        onMouseDown={(
+          e
+        ) =>
           e.stopPropagation()
         }
       >
         <button
           className="modal-close"
-          onClick={onClose}
+          type="button"
+          onClick={
+            onClose
+          }
           aria-label="Itxi"
         >
           ×
         </button>
 
         <div className="modal-icon">
-          🔑
+          🔐
         </div>
 
         <h2>
-          Liburu bat baloratu
+          Pasahitza
         </h2>
 
         <p>
-          Atal honetara sartzeko
+          Liburuak gehitu
+          edo baloratzeko
           pasahitza idatzi.
         </p>
 
-        <form onSubmit={onSubmit}>
-          <label htmlFor="password">
+        <form
+          onSubmit={
+            onSubmit
+          }
+        >
+          <label>
             Pasahitza
           </label>
 
           <input
-            id="password"
             type="password"
-            value={password}
-            onChange={(e) =>
-              setPassword(
-                e.target.value
+            value={
+              password
+            }
+            onChange={(
+              e
+            ) =>
+              onPasswordChange(
+                e.target
+                  .value
               )
             }
             autoFocus
@@ -458,5 +758,3 @@ function PasswordModal({
     </div>
   )
 }
-
-export default App

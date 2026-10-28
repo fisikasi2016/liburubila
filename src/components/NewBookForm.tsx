@@ -1,41 +1,127 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
-type Style = {
+type Option = {
   id: number
   name: string
-  name_normalized: string
+  position?: number
+}
+
+type Tag = {
+  id: number
+  name: string
+  name_normalized: string | null
 }
 
 type Props = {
-  onBack: () => void
   onCreated: (bookId: number) => void
+  onBack: () => void
 }
 
+const LANGUAGES = [
+  {
+    value: 'euskara',
+    label: 'Euskara',
+  },
+  {
+    value: 'gaztelera',
+    label: 'Gaztelera',
+  },
+  {
+    value: 'ingelesa',
+    label: 'Ingelesa',
+  },
+]
+
 export default function NewBookForm({
-  onBack,
   onCreated,
+  onBack,
 }: Props) {
+  // =========================
+  // DATOS DEL LIBRO
+  // =========================
+
   const [title, setTitle] = useState('')
   const [author, setAuthor] = useState('')
-  const [publicationDate, setPublicationDate] = useState('')
-  const [pages, setPages] = useState('')
-  const [language, setLanguage] = useState('euskara')
-
-  const [styles, setStyles] = useState<Style[]>([])
 
   const [
-    selectedStyles,
-    setSelectedStyles,
-  ] = useState<number[]>([])
+    publicationDate,
+    setPublicationDate,
+  ] = useState('')
 
-  const [newStyle, setNewStyle] = useState('')
+  const [pages, setPages] = useState('')
 
-  const [cover, setCover] =
+  const [language, setLanguage] =
+    useState('euskara')
+
+  const [coverFile, setCoverFile] =
     useState<File | null>(null)
 
-  const [preview, setPreview] =
-    useState<string | null>(null)
+  const [
+    coverPreview,
+    setCoverPreview,
+  ] = useState<string | null>(null)
+
+  // =========================
+  // CLASIFICACIÓN
+  // =========================
+
+  const [genres, setGenres] = useState<
+    Option[]
+  >([])
+
+  const [topics, setTopics] = useState<
+    Option[]
+  >([])
+
+  const [subtopics, setSubtopics] =
+    useState<Option[]>([])
+
+  const [tags, setTags] = useState<Tag[]>(
+    []
+  )
+
+  const [
+    selectedGenreId,
+    setSelectedGenreId,
+  ] = useState<number | null>(null)
+
+  const [
+    selectedTopicId,
+    setSelectedTopicId,
+  ] = useState<number | null>(null)
+
+  const [
+    selectedSubtopicId,
+    setSelectedSubtopicId,
+  ] = useState<number | null>(null)
+
+  const [
+    selectedTagIds,
+    setSelectedTagIds,
+  ] = useState<number[]>([])
+
+  const [
+    newTagName,
+    setNewTagName,
+  ] = useState('')
+
+  const [
+    tagSearch,
+    setTagSearch,
+  ] = useState('')
+
+  const [
+    creatingTag,
+    setCreatingTag,
+  ] = useState(false)
+
+  // =========================
+  // ESTADO GENERAL
+  // =========================
+
+  const [loading, setLoading] =
+    useState(true)
 
   const [saving, setSaving] =
     useState(false)
@@ -43,323 +129,316 @@ export default function NewBookForm({
   const [error, setError] =
     useState('')
 
+  const [
+    successMessage,
+    setSuccessMessage,
+  ] = useState('')
+
   useEffect(() => {
-    loadStyles()
+    loadClassification()
   }, [])
 
-  async function loadStyles() {
-    const {
-      data,
-      error,
-    } = await supabase
-      .from('styles')
-      .select(`
-        id,
-        name,
-        name_normalized
-      `)
-      .order('name')
-
-    if (error) {
-      console.error(error)
+  useEffect(() => {
+    if (!coverFile) {
+      setCoverPreview(null)
       return
     }
 
-    setStyles(data ?? [])
+    const objectUrl =
+      URL.createObjectURL(coverFile)
+
+    setCoverPreview(objectUrl)
+
+    return () => {
+      URL.revokeObjectURL(objectUrl)
+    }
+  }, [coverFile])
+
+  // =========================
+  // CARGAR BANCOS
+  // =========================
+
+  async function loadClassification() {
+    try {
+      setLoading(true)
+      setError('')
+
+      const [
+        genresResult,
+        topicsResult,
+        subtopicsResult,
+        tagsResult,
+      ] = await Promise.all([
+        supabase
+          .from('genres')
+          .select('id, name, position')
+          .order('position', {
+            ascending: true,
+          }),
+
+        supabase
+          .from('topics')
+          .select('id, name, position')
+          .order('position', {
+            ascending: true,
+          }),
+
+        supabase
+          .from('subtopics')
+          .select('id, name, position')
+          .order('position', {
+            ascending: true,
+          }),
+
+        supabase
+          .from('tags')
+          .select(
+            'id, name, name_normalized'
+          )
+          .order('name', {
+            ascending: true,
+          }),
+      ])
+
+      if (genresResult.error) {
+        throw genresResult.error
+      }
+
+      if (topicsResult.error) {
+        throw topicsResult.error
+      }
+
+      if (subtopicsResult.error) {
+        throw subtopicsResult.error
+      }
+
+      if (tagsResult.error) {
+        throw tagsResult.error
+      }
+
+      const loadedGenres =
+        genresResult.data ?? []
+
+      const loadedTopics =
+        topicsResult.data ?? []
+
+      const loadedSubtopics =
+        subtopicsResult.data ?? []
+
+      setGenres(loadedGenres)
+      setTopics(loadedTopics)
+      setSubtopics(loadedSubtopics)
+
+      setTags(
+        (tagsResult.data ?? []) as Tag[]
+      )
+
+      // Narratiba preseleccionada también
+      // en el formulario de creación.
+      const narratiba =
+        loadedGenres.find(
+          (genre) =>
+            genre.name === 'Narratiba'
+        )
+
+      if (narratiba) {
+        setSelectedGenreId(
+          narratiba.id
+        )
+      }
+    } catch (err) {
+      console.error(err)
+
+      setError(
+        'Ezin izan dira sailkapen-aukerak kargatu.'
+      )
+    } finally {
+      setLoading(false)
+    }
   }
 
-  function toggleStyle(id: number) {
-    setSelectedStyles(
-      (current) =>
-        current.includes(id)
-          ? current.filter(
-              (styleId) =>
-                styleId !== id
-            )
-          : [
-              ...current,
-              id,
-            ]
+  // =========================
+  // ETIQUETAS
+  // =========================
+
+  const filteredTags = useMemo(() => {
+    const query =
+      normalizeText(tagSearch)
+
+    if (!query) {
+      return tags
+    }
+
+    return tags.filter((tag) =>
+      normalizeText(tag.name).includes(
+        query
+      )
+    )
+  }, [tags, tagSearch])
+
+  function toggleTag(tagId: number) {
+    setSelectedTagIds(
+      (current) => {
+        if (
+          current.includes(tagId)
+        ) {
+          return current.filter(
+            (id) => id !== tagId
+          )
+        }
+
+        return [
+          ...current,
+          tagId,
+        ]
+      }
     )
   }
 
-  async function addNewStyle() {
-    setError('')
+  async function createTag() {
+    const cleaned =
+      cleanVisibleText(newTagName)
+        .replace(/^#+/, '')
+        .trim()
 
-    const cleanName =
-      cleanVisibleText(
-        newStyle
-      )
-
-    if (!cleanName) {
+    if (!cleaned) {
       return
     }
 
-    const normalizedName =
-      normalizeText(
-        cleanName
+    const normalized =
+      normalizeText(cleaned)
+
+    const existingLocal =
+      tags.find(
+        (tag) =>
+          tag.name_normalized ===
+            normalized ||
+          normalizeText(tag.name) ===
+            normalized
       )
 
-    /*
-      Primero buscamos entre los estilos
-      ya cargados.
-    */
-
-    const localExisting =
-      styles.find(
-        (style) =>
-          style.name_normalized ===
-          normalizedName
-      )
-
-    if (localExisting) {
+    if (existingLocal) {
       if (
-        !selectedStyles.includes(
-          localExisting.id
+        !selectedTagIds.includes(
+          existingLocal.id
         )
       ) {
-        setSelectedStyles(
+        setSelectedTagIds(
           (current) => [
             ...current,
-            localExisting.id,
+            existingLocal.id,
           ]
         )
       }
 
-      setNewStyle('')
+      setNewTagName('')
       return
     }
 
-    /*
-      Comprobamos también Supabase,
-      por si otro usuario acaba de
-      crear el mismo estilo.
-    */
+    try {
+      setCreatingTag(true)
+      setError('')
 
-    const {
-      data: existingStyle,
-      error: existingError,
-    } = await supabase
-      .from('styles')
-      .select(`
-        id,
-        name,
-        name_normalized
-      `)
-      .eq(
-        'name_normalized',
-        normalizedName
-      )
-      .maybeSingle()
+      const {
+        data,
+        error: insertError,
+      } = await supabase
+        .from('tags')
+        .insert({
+          name: cleaned,
+        })
+        .select(
+          'id, name, name_normalized'
+        )
+        .single()
 
-    if (existingError) {
-      console.error(
-        existingError
-      )
-
-      setError(
-        'Ezin izan da estiloa egiaztatu.'
-      )
-
-      return
-    }
-
-    if (existingStyle) {
-      setStyles(
-        (current) => {
-          const exists =
-            current.some(
-              (item) =>
-                item.id ===
-                existingStyle.id
+      if (insertError) {
+        // Puede ocurrir si otra persona
+        // ha creado la misma etiqueta.
+        if (
+          insertError.code ===
+          '23505'
+        ) {
+          const {
+            data: existing,
+            error: existingError,
+          } = await supabase
+            .from('tags')
+            .select(
+              'id, name, name_normalized'
             )
+            .eq(
+              'name_normalized',
+              normalized
+            )
+            .single()
 
-          if (exists) {
-            return current
+          if (
+            existingError ||
+            !existing
+          ) {
+            throw insertError
           }
 
-          return [
-            ...current,
-            existingStyle,
-          ].sort((a, b) =>
-            a.name.localeCompare(
-              b.name,
-              'eu'
-            )
-          )
-        }
-      )
-
-      setSelectedStyles(
-        (current) =>
-          current.includes(
-            existingStyle.id
-          )
-            ? current
-            : [
+          setTags(
+            (current) =>
+              sortTags([
                 ...current,
-                existingStyle.id,
-              ]
+                existing as Tag,
+              ])
+          )
+
+          setSelectedTagIds(
+            (current) =>
+              current.includes(
+                existing.id
+              )
+                ? current
+                : [
+                    ...current,
+                    existing.id,
+                  ]
+          )
+
+          setNewTagName('')
+          return
+        }
+
+        throw insertError
+      }
+
+      const createdTag =
+        data as Tag
+
+      setTags((current) =>
+        sortTags([
+          ...current,
+          createdTag,
+        ])
       )
 
-      setNewStyle('')
-      return
-    }
-
-    /*
-      No existe:
-      lo creamos.
-    */
-
-    const {
-      data,
-      error: insertError,
-    } = await supabase
-      .from('styles')
-      .insert({
-        name: cleanName,
-      })
-      .select(`
-        id,
-        name,
-        name_normalized
-      `)
-      .single()
-
-    if (insertError) {
-      console.error(
-        insertError
+      setSelectedTagIds(
+        (current) => [
+          ...current,
+          createdTag.id,
+        ]
       )
+
+      setNewTagName('')
+    } catch (err) {
+      console.error(err)
 
       setError(
-        'Ezin izan da estilo berria sortu.'
+        'Ezin izan da etiketa berria sortu.'
       )
-
-      return
+    } finally {
+      setCreatingTag(false)
     }
-
-    setStyles(
-      (current) =>
-        [
-          ...current,
-          data,
-        ].sort((a, b) =>
-          a.name.localeCompare(
-            b.name,
-            'eu'
-          )
-        )
-    )
-
-    setSelectedStyles(
-      (current) => [
-        ...current,
-        data.id,
-      ]
-    )
-
-    setNewStyle('')
   }
 
-  function handleCoverChange(
-    e: React.ChangeEvent<HTMLInputElement>
-  ) {
-    const file =
-      e.target.files?.[0]
-
-    if (!file) return
-
-    setCover(file)
-
-    if (preview) {
-      URL.revokeObjectURL(
-        preview
-      )
-    }
-
-    setPreview(
-      URL.createObjectURL(
-        file
-      )
-    )
-  }
-
-  async function uploadCover() {
-    if (!cover) {
-      return null
-    }
-
-    const extension =
-      cover.name
-        .split('.')
-        .pop()
-        ?.toLowerCase() ||
-      'jpg'
-
-    const fileName =
-      `${crypto.randomUUID()}.${extension}`
-
-    const {
-      error,
-    } = await supabase.storage
-      .from('book-covers')
-      .upload(
-        fileName,
-        cover
-      )
-
-    if (error) {
-      throw error
-    }
-
-    const {
-      data,
-    } = supabase.storage
-      .from('book-covers')
-      .getPublicUrl(
-        fileName
-      )
-
-    return data.publicUrl
-  }
-
-  async function checkDuplicateBook() {
-    const normalizedTitle =
-      normalizeText(
-        title
-      )
-
-    const normalizedAuthor =
-      normalizeAuthor(
-        author
-      )
-
-    const {
-      data,
-      error,
-    } = await supabase
-      .from('books')
-      .select(`
-        id,
-        title,
-        author
-      `)
-      .eq(
-        'title_normalized',
-        normalizedTitle
-      )
-      .eq(
-        'author_normalized',
-        normalizedAuthor
-      )
-      .maybeSingle()
-
-    if (error) {
-      throw error
-    }
-
-    return data
-  }
+  // =========================
+  // GUARDAR LIBRO
+  // =========================
 
   async function handleSubmit(
     e: React.FormEvent
@@ -367,54 +446,67 @@ export default function NewBookForm({
     e.preventDefault()
 
     setError('')
+    setSuccessMessage('')
 
-    const cleanTitle =
-      cleanVisibleText(
-        title
-      )
+    const cleanedTitle =
+      cleanVisibleText(title)
 
-    const cleanAuthor =
-      cleanVisibleText(
-        author
-      )
+    const cleanedAuthor =
+      cleanVisibleText(author)
 
-    if (!cleanTitle) {
+    if (!cleanedTitle) {
       setError(
-        'Liburuaren izenburua beharrezkoa da.'
+        'Liburuaren izenburua idatzi.'
       )
       return
     }
 
-    if (!cleanAuthor) {
+    if (!cleanedAuthor) {
       setError(
-        'Idazlearen izena beharrezkoa da.'
+        'Egilea idatzi.'
       )
       return
     }
+
+    if (!pages) {
+      setError(
+        'Orrialde kopurua idatzi.'
+      )
+      return
+    }
+
+    const numericPages =
+      Number(pages)
 
     if (
-      !pages ||
-      Number(pages) <= 0
+      !Number.isInteger(
+        numericPages
+      ) ||
+      numericPages <= 0
     ) {
       setError(
-        'Orrialde kopurua zuzena izan behar da.'
+        'Orrialde kopurua ez da zuzena.'
       )
       return
     }
 
-    if (
-      selectedStyles.length ===
-      0
-    ) {
+    if (!selectedGenreId) {
       setError(
-        'Gutxienez estilo bat aukeratu behar da.'
+        'Generoa aukeratu.'
       )
       return
     }
 
-    if (!cover) {
+    if (!selectedTopicId) {
       setError(
-        'Azalaren irudia gehitu behar da.'
+        'Gaia aukeratu.'
+      )
+      return
+    }
+
+    if (!selectedSubtopicId) {
+      setError(
+        'Azpigaia aukeratu.'
       )
       return
     }
@@ -422,68 +514,178 @@ export default function NewBookForm({
     try {
       setSaving(true)
 
-      /*
-        Antes de subir la portada,
-        comprobamos que el libro
-        no exista.
-      */
+      // =========================
+      // DUPLICADOS
+      // =========================
 
-      const duplicate =
-        await checkDuplicateBook()
+      const titleNormalized =
+        normalizeText(
+          cleanedTitle
+        )
 
-      if (duplicate) {
+      const authorNormalized =
+        normalizeAuthor(
+          cleanedAuthor
+        )
+
+      const {
+        data: duplicateBook,
+        error: duplicateError,
+      } = await supabase
+        .from('books')
+        .select(
+          'id, title, author'
+        )
+        .eq(
+          'title_normalized',
+          titleNormalized
+        )
+        .eq(
+          'author_normalized',
+          authorNormalized
+        )
+        .maybeSingle()
+
+      if (duplicateError) {
+        throw duplicateError
+      }
+
+      if (duplicateBook) {
         setError(
-          `Liburu hau dagoeneko existitzen dela dirudi: "${duplicate.title}", ${duplicate.author}.`
+          `Liburu hori dagoeneko existitzen da: "${duplicateBook.title}", ${duplicateBook.author}.`
         )
 
         return
       }
 
-      const coverUrl =
-        await uploadCover()
+      // =========================
+      // PORTADA
+      // =========================
+
+      let coverUrl:
+        | string
+        | null = null
+
+      let uploadedPath:
+        | string
+        | null = null
+
+      if (coverFile) {
+        const extension =
+          getFileExtension(
+            coverFile.name
+          )
+
+        const safeTitle =
+          normalizeText(
+            cleanedTitle
+          )
+            .replace(/\s+/g, '-')
+            .slice(0, 40)
+
+        const fileName =
+          `${Date.now()}-${crypto.randomUUID()}-${safeTitle}.${extension}`
+
+        uploadedPath =
+          fileName
+
+        const {
+          error: uploadError,
+        } =
+          await supabase.storage
+            .from(
+              'book-covers'
+            )
+            .upload(
+              fileName,
+              coverFile,
+              {
+                cacheControl:
+                  '3600',
+
+                upsert: false,
+              }
+            )
+
+        if (uploadError) {
+          throw uploadError
+        }
+
+        const {
+          data: publicData,
+        } =
+          supabase.storage
+            .from(
+              'book-covers'
+            )
+            .getPublicUrl(
+              fileName
+            )
+
+        coverUrl =
+          publicData.publicUrl
+      }
+
+      // =========================
+      // CREAR LIBRO
+      // =========================
 
       const {
-        data: book,
+        data: createdBook,
         error: bookError,
       } = await supabase
         .from('books')
         .insert({
           title:
-            cleanTitle,
+            cleanedTitle,
 
           author:
-            cleanAuthor,
+            cleanedAuthor,
 
           publication_date:
             publicationDate ||
             null,
 
           pages:
-            Number(pages),
+            numericPages,
 
           language,
 
           cover_url:
             coverUrl,
+
+          genre_id:
+            selectedGenreId,
+
+          topic_id:
+            selectedTopicId,
+
+          subtopic_id:
+            selectedSubtopicId,
         })
-        .select()
+        .select('id')
         .single()
 
       if (bookError) {
-        /*
-          Si dos personas intentasen
-          crear el mismo libro casi
-          simultáneamente, el índice
-          UNIQUE de Supabase lo
-          bloquearía igualmente.
-        */
+        // Si la creación falla
+        // después de subir la portada,
+        // intentamos limpiar Storage.
+        if (uploadedPath) {
+          await supabase.storage
+            .from(
+              'book-covers'
+            )
+            .remove([
+              uploadedPath,
+            ])
+        }
 
         if (
           bookError.code ===
           '23505'
         ) {
           setError(
-            'Liburu hau dagoeneko existitzen da.'
+            'Liburu hori dagoeneko existitzen da.'
           )
 
           return
@@ -492,151 +694,176 @@ export default function NewBookForm({
         throw bookError
       }
 
-      const relations =
-        selectedStyles.map(
-          (styleId) => ({
-            book_id:
-              book.id,
+      // =========================
+      // GUARDAR ETIQUETAS
+      // =========================
 
-            style_id:
-              styleId,
-          })
-        )
+      if (
+        selectedTagIds.length >
+        0
+      ) {
+        const relations =
+          selectedTagIds.map(
+            (tagId) => ({
+              book_id:
+                createdBook.id,
 
-      const {
-        error:
-          relationError,
-      } = await supabase
-        .from('book_styles')
-        .insert(
-          relations
-        )
+              tag_id:
+                tagId,
+            })
+          )
 
-      if (relationError) {
-        throw relationError
+        const {
+          error:
+            tagsRelationError,
+        } = await supabase
+          .from('book_tags')
+          .insert(relations)
+
+        if (
+          tagsRelationError
+        ) {
+          throw tagsRelationError
+        }
       }
 
+      setSuccessMessage(
+        'Liburua behar bezala gehitu da.'
+      )
+
       onCreated(
-        book.id
+        createdBook.id
       )
     } catch (err) {
-      console.error(err)
+      console.error(
+        'Error creando libro:',
+        err
+      )
 
       setError(
-        'Errorea gertatu da liburua gordetzean.'
+        'Ezin izan da liburua sortu. Saiatu berriro.'
       )
     } finally {
       setSaving(false)
     }
   }
 
+  // =========================
+  // CARGANDO
+  // =========================
+
+  if (loading) {
+    return (
+      <section className="page">
+        <p className="placeholder">
+          Aukerak kargatzen...
+        </p>
+      </section>
+    )
+  }
+
+  // =========================
+  // RENDER
+  // =========================
+
   return (
     <section className="page">
-      <button
-        className="back-button"
-        onClick={onBack}
-      >
-        ← Itzuli
-      </button>
+      <div className="new-book-page">
+        <button
+          className="back-button"
+          onClick={onBack}
+          type="button"
+        >
+          ← Itzuli
+        </button>
 
-      <div className="small-logo">
-        LIBURUBILA
-      </div>
-
-      <h1 className="section-title">
-        Liburu berria
-      </h1>
-
-      <form
-        className="book-form"
-        onSubmit={
-          handleSubmit
-        }
-      >
-        <div className="form-layout">
-          <div className="cover-column">
-            <label className="cover-upload">
-              {preview ? (
-                <img
-                  src={
-                    preview
-                  }
-                  alt="Azalaren aurrebista"
-                  className="cover-preview"
-                />
-              ) : (
-                <div className="cover-placeholder">
-                  <span>
-                    ＋
-                  </span>
-
-                  <strong>
-                    Azala gehitu
-                  </strong>
-
-                  <small>
-                    JPG, PNG...
-                  </small>
-                </div>
-              )}
-
-              <input
-                type="file"
-                accept="image/*"
-                onChange={
-                  handleCoverChange
-                }
-                hidden
-              />
-            </label>
+        <header className="form-header">
+          <div className="small-logo">
+            LIBURUBILA
           </div>
 
-          <div className="fields-column">
-            <div className="field">
-              <label>
-                Izenburua
-              </label>
+          <h1>
+            Liburua gehitu
+          </h1>
 
-              <input
-                type="text"
-                value={
-                  title
-                }
-                onChange={(e) =>
-                  setTitle(
-                    e.target
-                      .value
-                  )
-                }
-                placeholder="Liburuaren izenburua"
-              />
+          <p>
+            Gehitu oraindik
+            Liburubilan ez dagoen
+            liburu bat.
+          </p>
+        </header>
+
+        <form
+          className="new-book-form"
+          onSubmit={
+            handleSubmit
+          }
+        >
+          {/* ======================
+              LIBURUAREN DATUAK
+              ====================== */}
+
+          <section className="form-section">
+            <div className="form-section-heading">
+              <span className="form-step">
+                1
+              </span>
+
+              <div>
+                <h2>
+                  Liburuaren datuak
+                </h2>
+
+                <p>
+                  Oinarrizko
+                  informazioa.
+                </p>
+              </div>
             </div>
 
-            <div className="field">
-              <label>
-                Idazlea
+            <div className="form-grid">
+              <label className="form-field form-field-wide">
+                <span>
+                  Izenburua
+                </span>
+
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) =>
+                    setTitle(
+                      e.target
+                        .value
+                    )
+                  }
+                  placeholder="Liburuaren izenburua"
+                  required
+                />
               </label>
 
-              <input
-                type="text"
-                value={
-                  author
-                }
-                onChange={(e) =>
-                  setAuthor(
-                    e.target
-                      .value
-                  )
-                }
-                placeholder="Idazlearen izena"
-              />
-            </div>
+              <label className="form-field form-field-wide">
+                <span>
+                  Egilea
+                </span>
 
-            <div className="form-row">
-              <div className="field">
-                <label>
+                <input
+                  type="text"
+                  value={author}
+                  onChange={(e) =>
+                    setAuthor(
+                      e.target
+                        .value
+                    )
+                  }
+                  placeholder="Egilearen izen-abizenak"
+                  required
+                />
+              </label>
+
+              <label className="form-field">
+                <span>
                   Argitalpen-data
-                </label>
+                </span>
 
                 <input
                   type="date"
@@ -650,88 +877,125 @@ export default function NewBookForm({
                     )
                   }
                 />
-              </div>
+              </label>
 
-              <div className="field">
-                <label>
-                  Orrialde kopurua
-                </label>
+              <label className="form-field">
+                <span>
+                  Orrialdeak
+                </span>
 
                 <input
                   type="number"
                   min="1"
-                  value={
-                    pages
-                  }
+                  step="1"
+                  value={pages}
                   onChange={(e) =>
                     setPages(
                       e.target
                         .value
                     )
                   }
-                  placeholder="250"
+                  placeholder="Adib. 320"
+                  required
                 />
+              </label>
+
+              <label className="form-field">
+                <span>
+                  Hizkuntza
+                </span>
+
+                <select
+                  value={language}
+                  onChange={(e) =>
+                    setLanguage(
+                      e.target
+                        .value
+                    )
+                  }
+                >
+                  {LANGUAGES.map(
+                    (
+                      option
+                    ) => (
+                      <option
+                        key={
+                          option.value
+                        }
+                        value={
+                          option.value
+                        }
+                      >
+                        {
+                          option.label
+                        }
+                      </option>
+                    )
+                  )}
+                </select>
+              </label>
+            </div>
+          </section>
+
+          {/* ======================
+              SAILKAPENA
+              ====================== */}
+
+          <section className="form-section">
+            <div className="form-section-heading">
+              <span className="form-step">
+                2
+              </span>
+
+              <div>
+                <h2>
+                  Sailkapena
+                </h2>
+
+                <p>
+                  Aukeratu
+                  liburua hobekien
+                  deskribatzen duten
+                  aukerak.
+                </p>
               </div>
             </div>
 
-            <div className="field">
-              <label>
-                Hizkuntza
-              </label>
+            {/* GENEROA */}
 
-              <select
-                value={
-                  language
-                }
-                onChange={(e) =>
-                  setLanguage(
-                    e.target
-                      .value
-                  )
-                }
-              >
-                <option value="euskara">
-                  Euskara
-                </option>
+            <div className="classification-block">
+              <div className="classification-heading">
+                <h3>
+                  Generoa
+                </h3>
 
-                <option value="gaztelera">
-                  Gaztelera
-                </option>
+                <span>
+                  Aukera bat
+                </span>
+              </div>
 
-                <option value="ingelesa">
-                  Ingelesa
-                </option>
-              </select>
-            </div>
-
-            <div className="field">
-              <label>
-                Estiloak
-              </label>
-
-              <div className="style-list">
-                {styles.map(
-                  (style) => (
+              <div className="classification-options">
+                {genres.map(
+                  (genre) => (
                     <button
                       key={
-                        style.id
+                        genre.id
                       }
                       type="button"
                       className={
-                        selectedStyles.includes(
-                          style.id
-                        )
-                          ? 'style-chip selected'
-                          : 'style-chip'
+                        selectedGenreId ===
+                        genre.id
+                          ? 'classification-option selected'
+                          : 'classification-option'
                       }
                       onClick={() =>
-                        toggleStyle(
-                          style.id
+                        setSelectedGenreId(
+                          genre.id
                         )
                       }
                     >
                       {
-                        style.name
+                        genre.name
                       }
                     </button>
                   )
@@ -739,102 +1003,421 @@ export default function NewBookForm({
               </div>
             </div>
 
-            <div className="new-style-row">
+            {/* GAIA */}
+
+            <div className="classification-block">
+              <div className="classification-heading">
+                <h3>
+                  Gaia
+                </h3>
+
+                <span>
+                  Aukera bat
+                </span>
+              </div>
+
+              <div className="classification-options">
+                {topics.map(
+                  (topic) => (
+                    <button
+                      key={
+                        topic.id
+                      }
+                      type="button"
+                      className={
+                        selectedTopicId ===
+                        topic.id
+                          ? 'classification-option selected'
+                          : 'classification-option'
+                      }
+                      onClick={() =>
+                        setSelectedTopicId(
+                          topic.id
+                        )
+                      }
+                    >
+                      {
+                        topic.name
+                      }
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+
+            {/* AZPIGAIA */}
+
+            <div className="classification-block">
+              <div className="classification-heading">
+                <h3>
+                  Azpigaia
+                </h3>
+
+                <span>
+                  Aukera bat
+                </span>
+              </div>
+
+              <div className="classification-options">
+                {subtopics.map(
+                  (
+                    subtopic
+                  ) => (
+                    <button
+                      key={
+                        subtopic.id
+                      }
+                      type="button"
+                      className={
+                        selectedSubtopicId ===
+                        subtopic.id
+                          ? 'classification-option selected'
+                          : 'classification-option'
+                      }
+                      onClick={() =>
+                        setSelectedSubtopicId(
+                          subtopic.id
+                        )
+                      }
+                    >
+                      {
+                        subtopic.name
+                      }
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* ======================
+              ETIKETAK
+              ====================== */}
+
+          <section className="form-section">
+            <div className="form-section-heading">
+              <span className="form-step">
+                3
+              </span>
+
+              <div>
+                <h2>
+                  Etiketak
+                </h2>
+
+                <p>
+                  Aukeratu nahi
+                  dituzun guztiak,
+                  edo sortu etiketa
+                  berri bat.
+                </p>
+              </div>
+            </div>
+
+            <label className="form-field form-field-wide">
+              <span>
+                Etiketak bilatu
+              </span>
+
               <input
-                type="text"
-                value={
-                  newStyle
-                }
+                type="search"
+                value={tagSearch}
                 onChange={(e) =>
-                  setNewStyle(
+                  setTagSearch(
                     e.target
                       .value
                   )
                 }
-                onKeyDown={(e) => {
-                  if (
-                    e.key ===
-                    'Enter'
-                  ) {
-                    e.preventDefault()
-
-                    addNewStyle()
-                  }
-                }}
-                placeholder="Beste estilo bat..."
+                placeholder="Adib. magia, saga, lagunak..."
               />
+            </label>
 
-              <button
-                type="button"
-                onClick={
-                  addNewStyle
+            <div className="tags-bank">
+              {filteredTags.map(
+                (tag) => {
+                  const selected =
+                    selectedTagIds.includes(
+                      tag.id
+                    )
+
+                  return (
+                    <button
+                      key={
+                        tag.id
+                      }
+                      type="button"
+                      className={
+                        selected
+                          ? 'tag-option selected'
+                          : 'tag-option'
+                      }
+                      onClick={() =>
+                        toggleTag(
+                          tag.id
+                        )
+                      }
+                    >
+                      #
+                      {
+                        tag.name
+                      }
+                    </button>
+                  )
                 }
-              >
-                Gehitu
-              </button>
+              )}
             </div>
 
-            {error && (
-              <p className="error-message">
-                {error}
+            {filteredTags.length ===
+              0 && (
+              <p className="tags-empty">
+                Ez da etiketa
+                hori aurkitu.
+                Berria sor dezakezu.
               </p>
             )}
 
-            <button
-              className="primary-button save-book-button"
-              type="submit"
-              disabled={
-                saving
+            <div className="new-tag-box">
+              <label className="form-field">
+                <span>
+                  Etiketa berria
+                </span>
+
+                <input
+                  type="text"
+                  value={
+                    newTagName
+                  }
+                  onChange={(e) =>
+                    setNewTagName(
+                      e.target
+                        .value
+                    )
+                  }
+                  onKeyDown={(
+                    e
+                  ) => {
+                    if (
+                      e.key ===
+                      'Enter'
+                    ) {
+                      e.preventDefault()
+
+                      createTag()
+                    }
+                  }}
+                  placeholder="Adib. Slow burn"
+                />
+              </label>
+
+              <button
+                type="button"
+                className="secondary-button add-tag-button"
+                disabled={
+                  creatingTag ||
+                  !newTagName.trim()
+                }
+                onClick={
+                  createTag
+                }
+              >
+                {creatingTag
+                  ? 'Sortzen...'
+                  : '+ Etiketa sortu'}
+              </button>
+            </div>
+
+            {selectedTagIds.length >
+              0 && (
+              <div className="selected-tags-summary">
+                <strong>
+                  Aukeratutako
+                  etiketak
+                </strong>
+
+                <div>
+                  {tags
+                    .filter(
+                      (tag) =>
+                        selectedTagIds.includes(
+                          tag.id
+                        )
+                    )
+                    .map(
+                      (tag) => (
+                        <button
+                          key={
+                            tag.id
+                          }
+                          type="button"
+                          onClick={() =>
+                            toggleTag(
+                              tag.id
+                            )
+                          }
+                        >
+                          #
+                          {
+                            tag.name
+                          }{' '}
+                          ×
+                        </button>
+                      )
+                    )}
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* ======================
+              PORTADA
+              ====================== */}
+
+          <section className="form-section">
+            <div className="form-section-heading">
+              <span className="form-step">
+                4
+              </span>
+
+              <div>
+                <h2>
+                  Azala
+                </h2>
+
+                <p>
+                  Liburuaren azala
+                  gehitu.
+                </p>
+              </div>
+            </div>
+
+            <div className="cover-upload-area">
+              {coverPreview ? (
+                <div className="cover-preview">
+                  <img
+                    src={
+                      coverPreview
+                    }
+                    alt="Azalaren aurrebista"
+                  />
+
+                  <button
+                    type="button"
+                    className="remove-cover-button"
+                    onClick={() =>
+                      setCoverFile(
+                        null
+                      )
+                    }
+                  >
+                    ×
+                  </button>
+                </div>
+              ) : (
+                <div className="cover-placeholder">
+                  📖
+                </div>
+              )}
+
+              <label className="cover-upload-button">
+                <span>
+                  {coverFile
+                    ? 'Beste azal bat aukeratu'
+                    : 'Azala aukeratu'}
+                </span>
+
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={(e) => {
+                    const file =
+                      e.target
+                        .files?.[0] ??
+                      null
+
+                    setCoverFile(
+                      file
+                    )
+                  }}
+                />
+              </label>
+            </div>
+          </section>
+
+          {/* ======================
+              ERRORES
+              ====================== */}
+
+          {error && (
+            <p className="error-message">
+              {error}
+            </p>
+          )}
+
+          {successMessage && (
+            <p className="success-message">
+              {
+                successMessage
               }
+            </p>
+          )}
+
+          {/* ======================
+              GUARDAR
+              ====================== */}
+
+          <div className="form-actions">
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={onBack}
+              disabled={saving}
+            >
+              Utzi
+            </button>
+
+            <button
+              type="submit"
+              className="primary-button"
+              disabled={saving}
             >
               {saving
                 ? 'Gordetzen...'
-                : 'Liburua sortu'}
+                : 'Liburua gehitu'}
             </button>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </section>
   )
 }
 
-/* =========================
-   NORMALIZACIÓN
-   ========================= */
+// ============================================================
+// UTILIDADES
+// ============================================================
 
 function cleanVisibleText(
   value: string
 ) {
   return value
     .trim()
-    .replace(
-      /\s+/g,
-      ' '
-    )
+    .replace(/\s+/g, ' ')
 }
 
 function normalizeText(
   value: string
 ) {
-  return cleanVisibleText(
-    value
-  )
-    .toLocaleLowerCase(
-      'eu'
-    )
+  return value
     .normalize('NFD')
     .replace(
       /[\u0300-\u036f]/g,
       ''
     )
+    .toLowerCase()
     .replace(
-      /[^\p{L}\p{N} ]/gu,
+      /[^a-z0-9\s]/g,
       ' '
     )
-    .replace(
-      /\s+/g,
-      ' '
-    )
+    .replace(/\s+/g, ' ')
     .trim()
 }
 
@@ -843,8 +1426,51 @@ function normalizeAuthor(
 ) {
   return normalizeText(
     value
-  ).replace(
-    /\s+/g,
-    ''
+  ).replace(/\s+/g, '')
+}
+
+function sortTags(
+  tags: Tag[]
+) {
+  const unique = Array.from(
+    new Map(
+      tags.map((tag) => [
+        tag.id,
+        tag,
+      ])
+    ).values()
   )
+
+  return unique.sort(
+    (a, b) =>
+      a.name.localeCompare(
+        b.name,
+        'eu',
+        {
+          sensitivity:
+            'base',
+        }
+      )
+  )
+}
+
+function getFileExtension(
+  fileName: string
+) {
+  const extension =
+    fileName
+      .split('.')
+      .pop()
+      ?.toLowerCase()
+
+  if (
+    extension === 'png' ||
+    extension === 'jpg' ||
+    extension === 'jpeg' ||
+    extension === 'webp'
+  ) {
+    return extension
+  }
+
+  return 'jpg'
 }
