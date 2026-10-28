@@ -5585,3 +5585,275 @@ que la barra es interactiva.
     font-size: 1.18rem;
   }
 }
+
+/* ==========================================================
+   LIBURUBILA · AJUSTE MÓVIL LIBRARY
+   ========================================================== */
+
+@media (max-width: 650px) {
+  .library-page {
+    padding-bottom: 48px;
+  }
+
+  /* TOPBAR */
+
+  .library-topbar {
+    width: calc(100% - 32px);
+    margin: 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+  }
+
+  .library-topbar .back-button {
+    font-size: 0.95rem;
+    white-space: nowrap;
+  }
+
+  .library-topbar .primary-button {
+    min-height: 46px;
+
+    padding: 0 16px;
+
+    border-radius: 14px;
+
+    font-size: 0.84rem;
+    white-space: nowrap;
+  }
+
+  /* CABECERA */
+
+  .library-header {
+    width: calc(100% - 32px);
+    margin: 42px auto 30px;
+
+    display: block;
+
+    text-align: left;
+  }
+
+  .library-header .small-logo {
+    margin: 0 0 16px;
+
+    text-align: left;
+
+    font-size: 0.68rem;
+    letter-spacing: 0.28em;
+  }
+
+  .library-header h1 {
+    margin: 0;
+
+    max-width: none;
+
+    font-size: 2.35rem;
+    line-height: 1.02;
+
+    text-align: left;
+  }
+
+  .library-header p {
+    margin: 12px 0 0;
+
+    max-width: 320px;
+
+    font-size: 0.95rem;
+    line-height: 1.4;
+
+    text-align: left;
+  }
+
+  /* LIBURUTEGIA / IRAKURRIENAK */
+
+  .library-mode-switch {
+    width: calc(100% - 32px);
+
+    margin: 0 auto 24px;
+
+    padding: 5px;
+
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+
+    border-radius: 16px;
+  }
+
+  .library-mode-switch button {
+    min-height: 48px;
+
+    padding: 0 10px;
+
+    font-size: 0.95rem;
+
+    border-radius: 12px;
+  }
+
+  /* BÚSQUEDA */
+
+  .library-search-row {
+    width: calc(100% - 32px);
+
+    margin: 0 auto 22px;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 12px;
+  }
+
+  .library-search-row input {
+    width: 100%;
+
+    box-sizing: border-box;
+
+    min-height: 52px;
+
+    padding: 0 16px;
+
+    border-radius: 14px;
+
+    font-size: 0.95rem;
+  }
+
+  .filters-toggle-button {
+    width: 100%;
+
+    min-height: 52px;
+
+    border-radius: 14px;
+
+    font-size: 0.95rem;
+  }
+
+  /* RESULTADOS */
+
+  .library-results-summary {
+    width: calc(100% - 32px);
+
+    margin: 28px auto 14px;
+
+    font-size: 0.9rem;
+  }
+
+  /* GRID */
+
+  .library-grid {
+    width: calc(100% - 32px);
+
+    margin: 0 auto;
+
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 14px;
+  }
+
+  /* TARJETAS */
+
+  .library-book-card {
+    width: 100%;
+
+    min-width: 0;
+
+    border-radius: 16px;
+
+    overflow: hidden;
+  }
+
+  .library-book-cover {
+    width: 100%;
+
+    aspect-ratio: 2 / 3;
+  }
+
+  .library-book-info {
+    padding: 12px;
+  }
+
+  .library-book-info h2 {
+    margin: 0;
+
+    font-size: 0.9rem;
+    line-height: 1.2;
+  }
+
+  .library-book-author {
+    margin: 5px 0 9px;
+
+    font-size: 0.72rem;
+  }
+
+  .book-topic-badge {
+    max-width: 100%;
+
+    overflow: hidden;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+
+    font-size: 0.62rem;
+  }
+
+  .book-card-tags {
+    gap: 4px;
+
+    margin-top: 7px;
+  }
+
+  .book-card-tags span {
+    font-size: 0.58rem;
+  }
+
+  .book-card-rating {
+    margin-top: 10px;
+
+    gap: 6px;
+  }
+
+  .book-card-rating .star-rating-small {
+    font-size: 14px;
+  }
+
+  .book-card-rating strong {
+    font-size: 0.85rem;
+  }
+
+  .book-card-counts {
+    margin-top: 7px;
+
+    font-size: 0.64rem;
+  }
+}
+
+
+/* ==========================================================
+   MÓVIL MUY ESTRECHO
+   ========================================================== */
+
+@media (max-width: 390px) {
+  .library-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .library-book-card {
+    width: min(260px, 100%);
+    margin: 0 auto;
+  }
+
+  .library-header h1 {
+    font-size: 2.15rem;
+  }
+
+  .library-topbar .primary-button {
+    padding: 0 12px;
+
+    font-size: 0.78rem;
+  }
+}
+
+.library-header {
+  display: block;
+}
