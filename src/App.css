@@ -6103,20 +6103,19 @@ que la barra es interactiva.
 
 .app-shell {
   min-height: 100vh;
-
-  /* mantenemos el fondo original */
   background: #f6f4ed;
 }
 
 .main-home-header {
   width: min(800px, 100%);
   margin: 0 auto 34px;
-
   text-align: center;
 }
 
 
-/* LOGO + LIBURUBILA */
+/* ==========================================================
+   LOGO + LIBURUBILA
+   ========================================================== */
 
 .home-brand {
   display: flex;
@@ -6129,34 +6128,33 @@ que la barra es interactiva.
 }
 
 .home-brand-logo {
-  width: 56px;
-  height: 56px;
+  width: 60px;
+  height: 60px;
 
   object-fit: contain;
-
   flex: 0 0 auto;
 }
 
 .home-brand-name {
   color: #263c2d;
 
-  font-size: clamp(3.2rem, 8vw, 5.5rem);
-  font-weight: 700;
+  font-size: 2.4rem;
+  font-weight: 800;
 
   letter-spacing: 0.06em;
-
-  line-height: 0.95;
+  line-height: 1;
 }
 
 
-/* CITA */
+/* ==========================================================
+   CITA
+   ========================================================== */
 
 .home-quote {
   width: min(650px, 100%);
   margin: 0 auto;
 
   padding: 0;
-
   border: 0;
 
   text-align: center;
@@ -6186,72 +6184,9 @@ que la barra es interactiva.
 }
 
 
-/* ZER EGIN NAHI DUZU */
-
-.home-question {
-  margin: 34px 0 18px !important;
-
-  color: #263c2d;
-
-  font-size: 1.05rem !important;
-  font-weight: 600 !important;
-}
-
-
 /* ==========================================================
-   MÓVIL
+   ZER EGIN NAHI DUZU
    ========================================================== */
-
-@media (max-width: 650px) {
-  .home-brand {
-    gap: 11px;
-
-    margin-bottom: 22px;
-  }
-
-  .home-brand-logo {
-    width: 44px;
-    height: 44px;
-  }
-
-  .home-brand-logo {
-  width: 52px;
-  height: 52px;
-}
-
-.home-brand-name {
-  font-size: 2.8rem;
-  letter-spacing: 0.04em;
-}
-
-  .home-quote {
-    width: calc(100% - 20px);
-  }
-
-  .home-quote p {
-    font-size: 0.92rem;
-
-    line-height: 1.5;
-  }
-
-  .home-quote cite {
-    font-size: 0.72rem;
-  }
-
-  .home-question {
-    margin-top: 28px !important;
-  }
-}
-
-.home-brand-name {
-  color: #263c2d;
-
-  font-size: 1.05rem;
-  font-weight: 600;
-
-  letter-spacing: 0.08em;
-  line-height: 1;
-}
 
 .home-question {
   margin: 34px 0 18px !important;
@@ -6264,32 +6199,768 @@ que la barra es interactiva.
   letter-spacing: 0.02em;
 }
 
+
+/* ==========================================================
+   MÓVIL
+   ========================================================== */
+
 @media (max-width: 650px) {
+
+  .home-brand {
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+
+  .home-brand-logo {
+    width: 50px;
+    height: 50px;
+  }
+
   .home-brand-name {
+    font-size: 2rem;
+    font-weight: 800;
+
+    letter-spacing: 0.05em;
+  }
+
+  .home-quote {
+    width: calc(100% - 20px);
+  }
+
+  .home-quote p {
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+
+  .home-quote cite {
+    font-size: 0.72rem;
+  }
+
+  .home-question {
+    margin-top: 28px !important;
+
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+  }
+}
+
+
+
+/* ==========================================================
+   OVERRIDE FINAL · LIBURUBILA
+   ========================================================== */
+
+.home-brand .home-brand-name {
+  font-size: 2.4rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.06em !important;
+  line-height: 1 !important;
+
+  color: #263c2d !important;
+}
+
+.home-brand .home-brand-logo {
+  width: 60px !important;
+  height: 60px !important;
+}
+
+
+/* MÓVIL */
+
+@media (max-width: 650px) {
+  .home-brand .home-brand-name {
+    font-size: 2rem !important;
+    font-weight: 800 !important;
+  }
+
+  .home-brand .home-brand-logo {
+    width: 50px !important;
+    height: 50px !important;
+  }
+}
+
+
+/* ==========================================================
+   LIBURUBILA · LAYOUT GLOBAL V3
+   Aprovecha mejor escritorio y móvil sin cambiar la lógica.
+   Debe permanecer al FINAL del archivo.
+   ========================================================== */
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.app,
+.app-shell {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+
+/* ==========================================================
+   SISTEMA GENERAL DE PÁGINAS
+   ========================================================== */
+
+.page {
+  width: min(1360px, calc(100% - 64px));
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 36px 0 72px;
+}
+
+.section-title {
+  font-size: clamp(2.7rem, 5vw, 4.6rem);
+  margin: 18px 0 46px;
+}
+
+.small-logo {
+  margin-top: 26px;
+}
+
+
+/* ==========================================================
+   HASIERA
+   ========================================================== */
+
+.home-page {
+  width: min(1180px, calc(100% - 64px));
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: clamp(38px, 6vh, 72px) 0;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.main-home-header {
+  width: min(920px, 100%);
+  margin: 0 auto clamp(28px, 4vh, 46px);
+}
+
+.home-brand {
+  margin-bottom: clamp(28px, 4vh, 42px);
+}
+
+.home-brand .home-brand-logo {
+  width: 66px !important;
+  height: 66px !important;
+}
+
+.home-brand .home-brand-name {
+  font-size: clamp(2.5rem, 5vw, 4.2rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.055em !important;
+  line-height: 1 !important;
+}
+
+.home-quote {
+  width: min(780px, 100%);
+}
+
+.home-quote p {
+  font-size: clamp(1.05rem, 1.7vw, 1.35rem);
+  line-height: 1.65;
+}
+
+.home-quote cite {
+  margin-top: 12px;
+  font-size: 0.86rem;
+}
+
+.home-question {
+  margin: clamp(30px, 4vh, 46px) 0 22px !important;
+  font-size: clamp(1.15rem, 1.6vw, 1.35rem) !important;
+}
+
+.home-options {
+  width: min(900px, 100%);
+  margin: 0 auto;
+
+  display: grid;
+  grid-template-columns: 1fr !important;
+  gap: 16px;
+}
+
+.home-option-card {
+  width: 100%;
+  min-height: 148px;
+
+  padding: 24px 28px;
+  border-radius: 20px;
+
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  align-items: center;
+  gap: 20px;
+}
+
+.home-option-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0;
+}
+
+.home-option-card > div:not(.home-option-icon) {
+  align-self: center;
+}
+
+.home-option-card h2 {
+  margin: 0 0 7px;
+  font-size: clamp(1.2rem, 1.7vw, 1.45rem);
+}
+
+.home-option-card p {
+  margin: 0;
+  font-size: 0.94rem;
+  line-height: 1.45;
+}
+
+.home-option-arrow {
+  align-self: center;
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+
+/* ==========================================================
+   PANTALLA DE GESTIÓN
+   ========================================================== */
+
+.home-header:not(.main-home-header) {
+  margin: 22px auto 34px;
+}
+
+.home-header:not(.main-home-header) h1 {
+  font-size: clamp(2rem, 4vw, 3.4rem);
+}
+
+
+/* ==========================================================
+   LIBURUTEGIA
+   ========================================================== */
+
+.library-page {
+  width: 100%;
+  max-width: none;
+  padding-bottom: 72px;
+}
+
+.library-topbar,
+.library-header,
+.library-mode-switch,
+.library-search-row,
+.library-results-summary,
+.filters-panel,
+.library-grid,
+.most-read-view {
+  width: min(1400px, calc(100% - 64px));
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.library-header {
+  margin-top: 40px;
+  margin-bottom: 34px;
+}
+
+.library-header h1 {
+  font-size: clamp(3rem, 5.5vw, 5rem);
+  line-height: 0.98;
+}
+
+.library-header p {
+  max-width: 620px;
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
+.library-mode-switch {
+  margin-bottom: 24px;
+}
+
+.library-mode-switch button {
+  min-height: 48px;
+  padding: 0 24px;
+}
+
+.library-search-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.library-search-row input,
+.filters-toggle-button {
+  min-height: 54px;
+  font-size: 1rem;
+}
+
+.library-grid {
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 26px;
+}
+
+.library-book-info {
+  padding: 16px;
+}
+
+.library-book-info h2 {
+  font-size: 1.05rem;
+}
+
+.library-book-author {
+  font-size: 0.84rem;
+}
+
+
+/* ==========================================================
+   AÑADIR LIBRO
+   ========================================================== */
+
+.new-book-page {
+  width: min(1200px, calc(100% - 64px));
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 34px 0 76px;
+}
+
+.form-header {
+  margin: 34px 0 44px;
+}
+
+.form-header h1 {
+  font-size: clamp(2.8rem, 5vw, 4.4rem);
+}
+
+.form-section {
+  padding: 34px;
+  margin-top: 30px;
+}
+
+.form-grid {
+  gap: 22px;
+}
+
+
+/* ==========================================================
+   ELEGIR LIBRO EXISTENTE
+   ========================================================== */
+
+.existing-book-container {
+  width: min(1100px, 100%);
+  margin: 0 auto;
+}
+
+.book-search-wrapper {
+  margin-bottom: 28px;
+}
+
+.book-search-input {
+  min-height: 58px;
+  font-size: 1rem;
+}
+
+.existing-book-list {
+  gap: 12px;
+}
+
+.existing-book-item {
+  min-height: 84px;
+  grid-template-columns: 66px 1fr auto;
+  gap: 18px;
+  padding: 12px 18px 12px 12px;
+}
+
+.existing-book-cover {
+  width: 66px;
+  height: 66px;
+}
+
+.existing-book-info strong {
+  font-size: 1.05rem;
+}
+
+
+/* ==========================================================
+   FICHA DEL LIBRO
+   ========================================================== */
+
+.book-detail {
+  width: min(1180px, 100%);
+  margin: 44px auto 76px;
+
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: clamp(42px, 6vw, 84px);
+}
+
+.book-detail-info h1 {
+  font-size: clamp(2.5rem, 4.5vw, 4.3rem);
+  line-height: 1.02;
+}
+
+.book-detail-author {
+  font-size: 1.15rem;
+}
+
+.comments-section,
+.age-recommendation-section {
+  width: min(1180px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.comment-card {
+  padding: 20px;
+}
+
+
+/* ==========================================================
+   MODAL DE VALORACIÓN
+   ========================================================== */
+
+.rating-modal-v2 {
+  width: min(920px, calc(100% - 40px));
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  padding: 38px;
+}
+
+.rating-modal-header h2 {
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+
+/* ==========================================================
+   TABLET
+   ========================================================== */
+
+@media (max-width: 900px) {
+  .page,
+  .home-page,
+  .new-book-page,
+  .library-topbar,
+  .library-header,
+  .library-mode-switch,
+  .library-search-row,
+  .library-results-summary,
+  .filters-panel,
+  .library-grid,
+  .most-read-view {
+    width: calc(100% - 36px);
+  }
+
+  .book-detail {
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 34px;
+  }
+
+  .library-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 18px;
+  }
+}
+
+
+/* ==========================================================
+   MÓVIL
+   ========================================================== */
+
+@media (max-width: 650px) {
+  .page,
+  .home-page,
+  .new-book-page {
+    width: calc(100% - 24px);
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .page {
+    padding: 18px 0 46px;
+  }
+
+  .home-page {
+    padding: 26px 0 34px;
+    justify-content: flex-start;
+  }
+
+  .main-home-header {
+    margin-bottom: 24px;
+  }
+
+  .home-brand {
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+
+  .home-brand .home-brand-logo {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  .home-brand .home-brand-name {
+    font-size: 2rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.045em !important;
+  }
+
+  .home-quote {
+    width: 100%;
+  }
+
+  .home-quote p {
+    font-size: 0.96rem;
+    line-height: 1.55;
+  }
+
+  .home-question {
+    margin: 26px 0 16px !important;
+    font-size: 1.05rem !important;
+  }
+
+  .home-options {
+    width: 100%;
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  .home-option-card {
+    min-height: 116px;
+    padding: 17px 18px;
+
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    gap: 13px;
+  }
+
+  .home-option-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .home-option-card h2 {
     font-size: 1rem;
   }
 
-  .home-question {
-    font-size: 1rem !important;
+  .home-option-card p {
+    font-size: 0.76rem;
+  }
+
+  .library-topbar,
+  .library-header,
+  .library-mode-switch,
+  .library-search-row,
+  .library-results-summary,
+  .filters-panel,
+  .library-grid,
+  .most-read-view {
+    width: calc(100% - 24px);
+  }
+
+  .library-header {
+    margin: 28px auto 24px;
+  }
+
+  .library-header h1 {
+    font-size: 2.6rem;
+  }
+
+  .library-header p {
+    font-size: 0.92rem;
+  }
+
+  .library-mode-switch {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .library-search-row {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .library-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .library-book-card {
+    width: 100%;
+    margin: 0;
+  }
+
+  .new-book-page {
+    padding-top: 18px;
+  }
+
+  .form-header {
+    margin: 24px 0 28px;
+  }
+
+  .form-header h1 {
+    font-size: 2.5rem;
+  }
+
+  .form-section {
+    padding: 20px;
+  }
+
+  .existing-book-container {
+    width: 100%;
+  }
+
+  .book-detail {
+    width: 100%;
+    margin: 26px auto 46px;
+
+    grid-template-columns: 1fr;
+    gap: 26px;
+  }
+
+  .book-detail-cover {
+    width: min(250px, 72%);
+    margin: 0 auto;
+  }
+
+  .book-detail-info {
+    text-align: left;
+  }
+
+  .comments-section,
+  .age-recommendation-section {
+    width: 100%;
+  }
+
+  .rating-modal-v2 {
+    width: calc(100% - 14px);
+    max-height: calc(100dvh - 14px);
+    padding: 22px 16px;
   }
 }
 
-.home-brand-name {
+
+/* ==========================================================
+   MÓVIL ESTRECHO
+   ========================================================== */
+
+@media (max-width: 390px) {
+  .library-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .library-book-card {
+    width: 100%;
+  }
+
+  .home-brand .home-brand-name {
+    font-size: 1.72rem !important;
+  }
+}
+
+/* ==========================================================
+   AJUSTES FINALES · TITULOS + LIBRARY ALIGN
+   ========================================================== */
+
+
+/* ----------------------------------------------------------
+   ZER EGIN NAHI DUZU?
+   Mismo tamaño en Hasiera y Gestión
+   ---------------------------------------------------------- */
+
+.home-question,
+.home-header:not(.main-home-header) h1 {
+  font-size: 1.85rem !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
+
   color: #263c2d;
 
-  font-size: 1.58rem;
-  font-weight: 600;
-
-  letter-spacing: 0.08em;
-  line-height: 1;
+  margin-top: 30px !important;
+  margin-bottom: 24px !important;
 }
 
-@media (max-width: 650px) {
-  .home-brand-name {
-    font-size: 1.5rem;
+
+/* ----------------------------------------------------------
+   LIBURUTEGIA / IRAKURRIENAK
+   Centrado con el resto de la biblioteca
+   ---------------------------------------------------------- */
+
+.library-mode-switch {
+  width: min(1400px, calc(100% - 64px)) !important;
+
+  margin:
+    0 auto
+    24px !important;
+
+  box-sizing: border-box;
+
+  display: flex !important;
+
+  gap: 5px;
+
+  padding: 5px;
+}
+
+
+/* Los botones no deben estirar todo el selector en escritorio */
+
+.library-mode-switch button {
+  flex: 0 0 auto;
+}
+
+
+/* ==========================================================
+   TABLET
+   ========================================================== */
+
+@media (max-width: 900px) {
+
+  .library-mode-switch {
+    width: calc(100% - 36px) !important;
   }
 
-  .home-question {
-    font-size: 1rem !important;
+}
+
+
+/* ==========================================================
+   MÓVIL
+   ========================================================== */
+
+@media (max-width: 650px) {
+
+  .home-question,
+  .home-header:not(.main-home-header) h1 {
+    font-size: 1.45rem !important;
+
+    margin-top: 24px !important;
+    margin-bottom: 18px !important;
   }
+
+  .library-mode-switch {
+    width: calc(100% - 24px) !important;
+
+    display: grid !important;
+
+    grid-template-columns:
+      1fr 1fr;
+
+    margin:
+      0 auto
+      20px !important;
+  }
+
+  .library-mode-switch button {
+    width: 100%;
+  }
+
 }
